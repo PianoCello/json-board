@@ -47,6 +47,8 @@ assert.match(script, /function replaceEveryMatch\(/);
 assert.match(script, /function renderSearchHighlights\(/);
 assert.match(script, /function refreshSearchHighlights\(/);
 assert.match(script, /function setCodeMode\(/);
+assert.match(script, /canonicalText = currentPrimaryText\(\);/);
+assert.doesNotMatch(script, /请先修正 JSON，再开启代码模式/);
 assert.match(script, /highlightAuto\(sample, CODE_LANGUAGES\)/);
 assert.match(script, /function languageHint\(/);
 assert.match(script, /'sql'/);

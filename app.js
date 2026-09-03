@@ -1241,8 +1241,8 @@
   function setCodeMode(enabled, { persist = true, announceResult = true } = {}) {
     if (enabled && hideNullValues) {
       if (!syncCanonicalFromFiltered()) {
-        announce('请先修正 JSON，再开启代码模式');
-        return false;
+        // 用户可能已把隐藏 null 后的 JSON 替换为代码；进入代码模式时保留当前原文。
+        canonicalText = currentPrimaryText();
       }
       hideNullValues = false;
       input.value = canonicalText;
