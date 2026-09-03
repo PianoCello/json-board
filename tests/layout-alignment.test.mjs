@@ -47,6 +47,7 @@ assert.match(script, /function replaceEveryMatch\(/);
 assert.match(script, /function renderSearchHighlights\(/);
 assert.match(script, /function refreshSearchHighlights\(/);
 assert.match(script, /function setCodeMode\(/);
+assert.match(script, /input\.placeholder = enabled \? '请输入代码…' : '请输入 JSON 数据…'/);
 assert.match(script, /canonicalText = currentPrimaryText\(\);/);
 assert.doesNotMatch(script, /请先修正 JSON，再开启代码模式/);
 assert.match(script, /highlightAuto\(sample, CODE_LANGUAGES\)/);

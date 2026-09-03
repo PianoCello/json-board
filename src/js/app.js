@@ -1264,6 +1264,7 @@
     codeModeButton.setAttribute('aria-pressed', String(enabled));
     codeModeButton.setAttribute('aria-label', enabled ? '关闭代码模式' : '开启代码模式');
     codeModeButton.title = enabled ? '关闭代码模式' : '代码模式（自动识别语言）';
+    input.placeholder = enabled ? '请输入代码…' : '请输入 JSON 数据…';
     languageBadge.hidden = true;
     updateModeControls();
     renderDiagnostic(null);
