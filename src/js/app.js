@@ -1239,9 +1239,14 @@
   function updateModeControls() {
     const jsonToolsDisabled = compareMode || codeMode;
     hideNullButton.disabled = jsonToolsDisabled;
-    formatButton.disabled = jsonToolsDisabled;
+    formatButton.disabled = compareMode;
     collapseAllButton.disabled = jsonToolsDisabled;
     expandAllButton.disabled = jsonToolsDisabled;
+    const jsonModeActive = !compareMode && !codeMode;
+    formatButton.classList.toggle('active', jsonModeActive);
+    formatButton.setAttribute('aria-pressed', String(jsonModeActive));
+    formatButton.setAttribute('aria-label', codeMode ? '切换到 Json 模式' : '格式化 JSON');
+    formatButton.title = codeMode ? '切换到 Json 模式' : '格式化 JSON（⌘/Ctrl + Enter）';
   }
 
   function setCodeMode(enabled, { persist = true, announceResult = true } = {}) {
@@ -1383,7 +1388,10 @@
       else closeReplacePanel();
     }
     if (button.dataset.action === 'code-mode') setCodeMode(!codeMode);
-    if (button.dataset.action === 'format') void formatJson();
+    if (button.dataset.action === 'format') {
+      if (codeMode) setCodeMode(false);
+      else void formatJson();
+    }
     if (button.dataset.action === 'compare') setCompareMode(!compareMode);
   });
 

@@ -9,7 +9,7 @@
   <link rel="icon" href="./public/icons/favicon.svg" type="image/svg+xml">
   <link rel="alternate icon" href="./public/icons/favicon.png" type="image/png" sizes="128x128">
   <link rel="apple-touch-icon" href="./public/icons/favicon.png">
-  <link rel="stylesheet" href="./src/css/app.css?v=20260903-6">
+  <link rel="stylesheet" href="./src/css/app.css?v=20260903-7">
 </head>
 <body>
   <main class="app" aria-label="JSON 看板">
@@ -33,9 +33,9 @@
         <button class="icon-button" type="button" data-action="replace" title="查找替换（Ctrl + H / ⌘⌥F）" aria-label="打开查找替换" aria-pressed="false">
           <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 4 4M6 19h7M10.5 16.5 13 19l-2.5 2.5"/></svg>
         </button>
-        <button class="format-json-button" type="button" data-action="format" title="格式化 JSON（⌘/Ctrl + Enter）" aria-label="格式化 JSON">
+        <button class="format-json-button active" type="button" data-action="format" title="格式化 JSON（⌘/Ctrl + Enter）" aria-label="格式化 JSON" aria-pressed="true">
           <svg viewBox="0 0 24 24"><path d="M8 4H5a2 2 0 0 0-2 2v3M16 4h3a2 2 0 0 1 2 2v3M8 20H5a2 2 0 0 1-2-2v-3M16 20h3a2 2 0 0 0 2-2v-3M9 8l-2 4 2 4M15 8l2 4-2 4"/></svg>
-          <span>格式化 JSON</span>
+          <span>Json 模式</span>
         </button>
         <button class="code-mode-button" type="button" data-action="code-mode" title="代码模式（自动识别语言）" aria-label="开启代码模式" aria-pressed="false">
           <svg viewBox="0 0 24 24"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg>
@@ -146,6 +146,6 @@
   <script src="./src/js/json-diagnostics.js?v=20260903-3"></script>
   <script src="./src/js/editor-utils.js?v=20260903-3"></script>
   <script src="./src/js/diff-utils.js?v=20260903-3"></script>
-  <script src="./src/js/app.js?v=20260903-8"></script>
+  <script src="./src/js/app.js?v=20260903-9"></script>
 </body>
 </html>

@@ -13,6 +13,7 @@ assert.match(css, /\.syntax-layer,\s*\.code-stage textarea\s*\{[\s\S]*?padding:\
 assert.match(html, /id="comparePane"[^>]*hidden/);
 assert.match(html, /id="foldControls"[^>]*class="fold-controls"/);
 assert.match(html, /data-action="format"/);
+assert.match(html, /data-action="format"[\s\S]{0,300}<span>Json 模式<\/span>/);
 assert.match(html, /data-action="collapse-all"/);
 assert.match(html, /data-action="expand-all"/);
 assert.match(html, /data-action="replace"/);
@@ -47,6 +48,7 @@ assert.match(script, /function replaceEveryMatch\(/);
 assert.match(script, /function renderSearchHighlights\(/);
 assert.match(script, /function refreshSearchHighlights\(/);
 assert.match(script, /function setCodeMode\(/);
+assert.match(script, /if \(codeMode\) setCodeMode\(false\);[\s\S]{0,60}else void formatJson\(\);/);
 assert.match(script, /input\.placeholder = enabled \? '请输入代码…' : '请输入 JSON 数据…'/);
 assert.match(script, /canonicalText = currentPrimaryText\(\);/);
 assert.doesNotMatch(script, /请先修正 JSON，再开启代码模式/);

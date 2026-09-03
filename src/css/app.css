@@ -139,10 +139,10 @@ input { font: inherit; }
 
 .compare-mode-button svg, .code-mode-button svg, .format-json-button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .compare-mode-button:hover, .code-mode-button:hover, .format-json-button:hover { color: var(--accent-dark); background: #effbf7; border-color: #c9eee1; }
-.compare-mode-button.active, .code-mode-button.active { color: #fff; background: var(--accent-dark); border-color: var(--accent-dark); box-shadow: 0 3px 10px rgba(8, 185, 133, .2); }
+.compare-mode-button.active, .code-mode-button.active, .format-json-button.active { color: #fff; background: var(--accent-dark); border-color: var(--accent-dark); box-shadow: 0 3px 10px rgba(8, 185, 133, .2); }
 .language-badge { flex: 0 0 auto; margin-left: auto; padding: 5px 9px; color: #087d5e; background: #eafaf4; border: 1px solid #ccefe3; border-radius: 12px; font: 600 10px/1 var(--font-code); white-space: nowrap; }
-.format-json-button { margin-left: 8px; color: #fff; background: var(--accent-dark); border-color: var(--accent-dark); box-shadow: 0 3px 10px rgba(8, 185, 133, .16); }
-.format-json-button:hover { color: #fff; background: #079f73; border-color: #079f73; }
+.format-json-button { margin-left: 8px; }
+.format-json-button.active:hover { color: #fff; background: #079f73; border-color: #079f73; }
 .format-json-button:disabled { opacity: .38; box-shadow: none; cursor: not-allowed; }
 
 .compare-summary {
