@@ -9,7 +9,7 @@
   <link rel="icon" href="./public/icons/favicon.svg" type="image/svg+xml">
   <link rel="alternate icon" href="./public/icons/favicon.png" type="image/png" sizes="128x128">
   <link rel="apple-touch-icon" href="./public/icons/favicon.png">
-  <link rel="stylesheet" href="./src/css/app.css?v=20260903-5">
+  <link rel="stylesheet" href="./src/css/app.css?v=20260903-6">
 </head>
 <body>
   <main class="app" aria-label="JSON 看板">
@@ -41,7 +41,6 @@
           <svg viewBox="0 0 24 24"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg>
           <span>代码模式</span>
         </button>
-        <span id="languageBadge" class="language-badge" title="自动识别到的语言" hidden>纯文本</span>
         <button class="compare-mode-button" type="button" data-action="compare" title="文本对比" aria-label="进入文本对比模式" aria-pressed="false">
           <svg viewBox="0 0 24 24"><path d="M8 5H4v14h4M16 5h4v14h-4M9 9l3-3 3 3M15 15l-3 3-3-3M12 6v12"/></svg>
           <span>文本对比</span>
@@ -69,6 +68,8 @@
           <span class="diff-stat modified"><i></i><b id="modifiedCount">0</b> 修改</span>
         </div>
       </div>
+
+      <span id="languageBadge" class="language-badge" title="自动识别到的语言" hidden></span>
 
     </header>
 
@@ -145,6 +146,6 @@
   <script src="./src/js/json-diagnostics.js?v=20260903-3"></script>
   <script src="./src/js/editor-utils.js?v=20260903-3"></script>
   <script src="./src/js/diff-utils.js?v=20260903-3"></script>
-  <script src="./src/js/app.js?v=20260903-6"></script>
+  <script src="./src/js/app.js?v=20260903-7"></script>
 </body>
 </html>

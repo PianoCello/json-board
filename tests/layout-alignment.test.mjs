@@ -51,6 +51,7 @@ assert.match(script, /canonicalText = currentPrimaryText\(\);/);
 assert.doesNotMatch(script, /请先修正 JSON，再开启代码模式/);
 assert.match(script, /highlightAuto\(sample, CODE_LANGUAGES\)/);
 assert.match(script, /function languageHint\(/);
+assert.match(script, /language === 'plaintext'[\s\S]{0,160}languageBadge\.hidden = true/);
 assert.match(script, /'sql'/);
 assert.match(script, /每次打开默认保持单面板/);
 assert.doesNotMatch(script, /saved\?\.compareMode\) setCompareMode/);

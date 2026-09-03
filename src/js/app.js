@@ -172,7 +172,13 @@
 
   function updateLanguageBadge(editor, language) {
     if (!codeMode || editor !== activeEditor) return;
-    languageBadge.textContent = LANGUAGE_LABELS[language] || (language === 'plaintext' ? '纯文本' : language.toUpperCase());
+    if (!language || language === 'plaintext') {
+      languageBadge.textContent = '';
+      languageBadge.hidden = true;
+      return;
+    }
+    languageBadge.textContent = LANGUAGE_LABELS[language] || language.toUpperCase();
+    languageBadge.hidden = false;
   }
 
   function lineIndex(editor) {
@@ -1258,7 +1264,7 @@
     codeModeButton.setAttribute('aria-pressed', String(enabled));
     codeModeButton.setAttribute('aria-label', enabled ? '关闭代码模式' : '开启代码模式');
     codeModeButton.title = enabled ? '关闭代码模式' : '代码模式（自动识别语言）';
-    languageBadge.hidden = !enabled;
+    languageBadge.hidden = true;
     updateModeControls();
     renderDiagnostic(null);
     foldControls.replaceChildren();
