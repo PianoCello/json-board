@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+const css = readFileSync(new URL('../src/css/app.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const script = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
-const highlighter = readFileSync(new URL('../vendor/highlight.min.js', import.meta.url), 'utf8');
+const script = readFileSync(new URL('../src/js/app.js', import.meta.url), 'utf8');
+const highlighter = readFileSync(new URL('../vendor/highlightjs/highlight.min.js', import.meta.url), 'utf8');
 
 assert.match(css, /--editor-top:\s*6px/);
 assert.match(css, /\.workspace\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\)/);
@@ -18,14 +18,14 @@ assert.match(html, /data-action="expand-all"/);
 assert.match(html, /data-action="replace"/);
 assert.match(html, /data-action="code-mode"/);
 assert.match(html, /id="languageBadge"/);
-assert.match(html, /src="\.\/vendor\/highlight\.min\.js\?v=11\.11\.1"/);
+assert.match(html, /src="\.\/vendor\/highlightjs\/highlight\.min\.js\?v=11\.11\.1"/);
 assert.match(html, /id="replacePanel"[^>]*role="dialog"/);
 assert.match(html, /id="primarySearchHighlights"[^>]*class="search-highlights"/);
 assert.match(html, /id="compareSearchHighlights"[^>]*class="search-highlights"/);
 assert.match(html, /id="errorLocation"/);
-assert.match(html, /src="\.\/json-diagnostics\.js\?v=/);
-assert.match(html, /src="\.\/editor-utils\.js\?v=/);
-assert.match(html, /src="\.\/diff-utils\.js\?v=/);
+assert.match(html, /src="\.\/src\/js\/json-diagnostics\.js\?v=/);
+assert.match(html, /src="\.\/src\/js\/editor-utils\.js\?v=/);
+assert.match(html, /src="\.\/src\/js\/diff-utils\.js\?v=/);
 assert.match(css, /\.fold-button\s*\{[\s\S]*?border-radius:\s*50%/);
 assert.match(css, /\.fragment-copy-button\s*\{/);
 assert.match(script, /const LARGE_TEXT_LENGTH = 150000/);

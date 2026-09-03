@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 const context = { globalThis: {}, JSON };
-vm.runInNewContext(readFileSync(new URL('../json-diagnostics.js', import.meta.url), 'utf8'), context);
+vm.runInNewContext(readFileSync(new URL('../src/js/json-diagnostics.js', import.meta.url), 'utf8'), context);
 const { analyze } = context.globalThis.JsonDiagnostics;
 
 const cases = [

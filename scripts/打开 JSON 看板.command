@@ -1,7 +1,7 @@
 #!/bin/zsh
 
-SCRIPT_DIR="${0:A:h}"
-PAGE_URL="file://${SCRIPT_DIR}/index.html?standalone=1"
+PROJECT_DIR="${0:A:h:h}"
+PAGE_URL="file://${PROJECT_DIR}/index.html?standalone=1"
 
 if [[ -d "/Applications/Google Chrome.app" ]]; then
   open -na "Google Chrome" --args --app="$PAGE_URL" --start-maximized

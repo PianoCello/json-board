@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const source = readFileSync(new URL('../diff-utils.js', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../src/js/diff-utils.js', import.meta.url), 'utf8');
 const context = {};
 vm.runInNewContext(source, context);
 const { lineDiff } = context.JsonBoardDiff;

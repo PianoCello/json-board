@@ -1,0 +1,20 @@
+{
+  "name": "json-board",
+  "version": "1.0.0",
+  "private": false,
+  "description": "Offline-first JSON and code editor with folding, diagnostics, search/replace and text diff.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PianoCello/json-board.git"
+  },
+  "scripts": {
+    "check": "node --check src/js/*.js",
+    "test": "node --test tests/*.test.mjs",
+    "verify": "npm run check && npm test",
+    "serve": "python3 -m http.server 4173"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
