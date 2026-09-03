@@ -17,6 +17,10 @@
   <img src="https://img.shields.io/badge/dependencies-zero-11c993.svg" alt="Zero runtime dependencies">
 </p>
 
+<p align="center">
+  <a href="https://pianocello.github.io/json-board/"><strong>在线使用 JSON Board →</strong></a>
+</p>
+
 ![JSON 模式：格式化、高亮、行号与折叠](docs/images/json-mode.png)
 
 ## 为什么用它
