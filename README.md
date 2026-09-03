@@ -1,48 +1,132 @@
-# 本地 JSON 看板
+<p align="center">
+  <img src="public/icons/favicon.png" width="96" height="96" alt="JSON Board logo">
+</p>
 
-这是一个纯前端、可离线使用的 JSON/代码编辑、高亮与文本对比工具。文本不会上传到服务器；首次打开为空白，刷新或重新打开后会恢复当前文本、代码模式、行号及隐藏 null 状态。每次打开默认保持单面板。
+<h1 align="center">JSON Board</h1>
 
-本项目采用 [MIT License](./LICENSE) 开源。
+<p align="center">
+  一个离线优先、打开即用的 JSON 与代码工作台。
+  <br>
+  格式化、折叠、诊断、代码高亮、查找替换和文本对比，全都留在本地浏览器里完成。
+</p>
 
-浏览器标签页使用项目自带的翡翠绿 JSON 图标；更新后若旧标签仍显示默认图标，请关闭标签页并重新打开。
+<p align="center">
+  <a href="https://github.com/PianoCello/json-board/actions/workflows/test.yml"><img src="https://github.com/PianoCello/json-board/actions/workflows/test.yml/badge.svg" alt="Test status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-11c993.svg" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/runtime-offline-11c993.svg" alt="Offline first">
+  <img src="https://img.shields.io/badge/dependencies-zero-11c993.svg" alt="Zero runtime dependencies">
+</p>
 
-## 使用
+![JSON 模式：格式化、高亮、行号与折叠](docs/images/json-mode.png)
 
-在 macOS 上，直接双击 **`打开 JSON 看板.command`**，页面会以无地址栏的独立窗口启动并自动最大化，不需要再点全屏按钮。首次运行如果系统拦截，请右键该文件选择“打开”。
+## 为什么用它
 
-也可以直接双击 `index.html`，页面会自动铺满浏览器的全部可视区域。
+JSON Board 不需要安装、不需要构建，也不会把文本传到服务器。下载仓库后直接打开 `index.html`，就能获得接近桌面编辑器的体验。
 
-也可以在当前目录启动本地服务器：
+| 能力 | 说明 |
+| --- | --- |
+| JSON 工作台 | 自动格式化、行号、折叠、片段复制、一键展开与隐藏 `null` |
+| 中文诊断 | 定位缺逗号、多括号、错误引号、非法转义等常见 JSON 问题 |
+| 代码模式 | 自动识别 JavaScript、TypeScript、Python、Java、SQL、Shell、HTML、CSS、Go、Rust 等语言 |
+| 查找替换 | 所有匹配与当前匹配独立高亮，支持上一处、下一处、替换和全部替换 |
+| 文本对比 | 任意文本左右对比，支持差异统计、变更导航和双栏同步滚动 |
+| 大文件优化 | 纵向与横向虚拟渲染，超大文本使用 IndexedDB 与 gzip 本地备份 |
+| 刷新恢复 | 自动保存当前文本、显示模式、行号和隐藏 `null` 状态 |
+
+## 三种工作模式
+
+<table>
+  <tr>
+    <td width="50%"><strong>代码模式</strong></td>
+    <td width="50%"><strong>文本对比</strong></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/code-mode.png" alt="JavaScript 自动语法高亮"></td>
+    <td><img src="docs/images/diff-mode.png" alt="左右文本差异高亮"></td>
+  </tr>
+  <tr>
+    <td>自动识别语言并使用离线 Highlight.js 着色。</td>
+    <td>绿色为新增，红色为删除，琥珀色为修改。</td>
+  </tr>
+</table>
+
+## 快速开始
+
+### 直接使用
 
 ```bash
-python3 -m http.server 4173
+git clone https://github.com/PianoCello/json-board.git
+cd json-board
+open index.html
+```
+
+macOS 也可以双击 [`scripts/打开 JSON 看板.command`](scripts/%E6%89%93%E5%BC%80%20JSON%20%E7%9C%8B%E6%9D%BF.command)，以最大化独立窗口打开。
+
+### 本地服务器
+
+```bash
+npm run serve
 ```
 
 然后访问 `http://localhost:4173`。
 
 ## 快捷键
 
-- `Ctrl/Command + Enter`：格式化 JSON
-- `Ctrl + H`（Windows）或 `Command + Option + F`（macOS）：查找替换
-- `Tab`：在输入区插入两个空格
-- 左右方向键：聚焦分隔线时微调左右栏宽度
+| 快捷键 | 功能 |
+| --- | --- |
+| `Ctrl/Command + Enter` | 格式化 JSON |
+| `Ctrl + H` | Windows 打开查找替换 |
+| `Command + Option + F` | macOS 打开查找替换 |
+| `Ctrl/Command + F` | 保留浏览器原生搜索 |
+| `Tab` | 插入两个空格 |
+| `←` / `→` | 聚焦分隔线时调整双栏宽度 |
 
-默认是一个铺满页面的可编辑 JSON 看板，键名、字符串、数字、布尔值和 `null` 会使用不同颜色实时高亮。开启“代码模式”后会自动识别并高亮 JavaScript、TypeScript、Python、Java、SQL、Shell、HTML/XML、CSS、C/C++、C#、Go、Rust、PHP、Ruby、Kotlin、Swift、Markdown、YAML 等常见语言。语言识别基于 Highlight.js 11.11.1 的离线常用语言构建，许可证见 `vendor/highlightjs-LICENSE`。
+## 项目结构
 
-工具栏的查找替换支持上一处、下一处、替换当前和全部替换；在文本对比模式下，它会作用于最后聚焦的左侧或右侧编辑区。浏览器原生 `Ctrl/Command + F` 搜索保持不变。
+```text
+json-board/
+├── .github/workflows/      # GitHub Actions
+├── docs/
+│   ├── images/             # README 实际运行截图
+│   └── ARCHITECTURE.md     # 架构与编辑器图层说明
+├── public/icons/           # 应用图标
+├── scripts/                # 本地启动脚本
+├── src/
+│   ├── css/app.css         # 视觉样式与编辑器图层
+│   └── js/
+│       ├── app.js          # 应用状态与交互
+│       ├── diff-utils.js   # 行级差异算法
+│       ├── editor-utils.js # 括号配对等编辑能力
+│       └── json-diagnostics.js
+├── tests/                  # Node.js 回归测试
+├── vendor/highlightjs/     # 离线语法高亮与许可证
+├── index.html              # 无构建步骤的应用入口
+└── package.json            # 测试与本地开发命令
+```
 
-多行对象和数组会在对应层级前显示圆形 `−` 按钮，点击后折叠为 `{ … }`；数组会显示直接元素数量，例如 `[ … 12 项 ]`。再点蓝色 `+` 即可展开。折叠只影响当前视图，复制、刷新和进入文本对比都会使用完整原文；在折叠状态开始编辑时会先自动安全展开。
+更多实现细节见 [架构说明](docs/ARCHITECTURE.md)。
 
-“折叠全部”会保留最外层对象或数组展开，并收起其直接子片段；“展开全部”会恢复全部内容。
+## 开发与验证
 
-每个非根对象和数组的折叠按钮左侧都有片段复制图标，可直接复制该对象或数组的完整 JSON。片段已折叠时复制的仍是完整内容；根对象使用顶部复制按钮。
+项目没有运行时 npm 依赖。Node.js 只用于执行自动化测试：
 
-粘贴或输入完整的小型单行 JSON 后，编辑器会自动使用 4 个空格格式化；已有的多行内容不会在编辑过程中被强制重排。
+```bash
+npm run verify
+```
 
-编辑 JSON 时，停止输入片刻后会自动进行中文语法诊断。提示包含准确的行号、列号、问题原因和修改建议，可识别缺少或多余逗号、缺少冒号、单双引号错误、属性名未加引号、括号缺失/多余/不匹配、非法转义、错误数字、注释以及 `undefined`、`NaN` 等非法值。诊断只提示，不会自动修改内容；点击“定位到问题”才会移动光标。
+该命令会进行 JavaScript 语法检查，并运行差异算法、括号配对、JSON 中文诊断和页面结构契约测试。每次推送和 Pull Request 也会由 GitHub Actions 自动执行同一套验证。
 
-大文件会自动启用纵向和横向虚拟高亮，只渲染屏幕可见范围；大型单行 JSON 不会在粘贴瞬间阻塞主界面，可点击“格式化 JSON”或按 `Command/Ctrl + Enter` 在后台格式化。普通文本同步保存在本地；超大文本同时使用 IndexedDB 和 gzip 压缩本地备份，刷新与重新打开页面均可恢复。
+## 隐私与离线能力
 
-点击“文本对比”后才会切换为左右两个可编辑页面。左侧作为原文，右侧可粘贴 JavaScript、SQL、XML、日志、配置文件或任意普通文本；对比模式不会解析或格式化代码。绿色表示新增行，红色表示删除行，琥珀色表示修改行，默认忽略行首尾空白。
+- 编辑内容只写入浏览器的 LocalStorage 或 IndexedDB。
+- 应用不会发送网络请求，也没有分析统计或后端接口。
+- Highlight.js 已随项目离线打包，断网仍可进行代码高亮。
+- README 徽章只在浏览 GitHub 项目页时加载，不属于应用运行时。
 
-工具按钮、差异统计和“上一处 / 下一处”导航统一放在横跨页面的顶栏中，左右文本从同一水平线开始。对比模式下滚动任意一侧，另一侧会同步纵向和横向滚动；差异导航会精准定位并聚焦对应差异块，到达首尾后循环跳转。
+## 参与贡献
+
+欢迎提交 Issue 和 Pull Request。开始前请阅读 [贡献指南](CONTRIBUTING.md) 与 [变更记录](CHANGELOG.md)。
+
+## License
+
+[MIT](LICENSE) © 2026 PianoCello
