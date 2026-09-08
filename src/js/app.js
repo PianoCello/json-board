@@ -405,6 +405,13 @@
     clearTimeout(foldTimer);
     if (compareMode || codeMode) { foldControls.replaceChildren(); return; }
     const text = currentPrimaryText();
+    if (!text.trim()) {
+      foldRanges = [];
+      foldRows = [];
+      foldDisplayMap = [];
+      foldControls.replaceChildren();
+      return;
+    }
     const scan = () => {
       if (text !== currentPrimaryText()) return;
       foldRanges = findFoldRanges(text);
@@ -561,6 +568,16 @@
     if (preserveSelection) input.setSelectionRange(selectionStart, selectionEnd);
     scheduleFoldScan();
     scheduleSave();
+  }
+
+  function resetFoldState() {
+    clearTimeout(foldTimer);
+    foldSourceText = '';
+    foldRows = [];
+    foldDisplayMap = [];
+    foldRanges = [];
+    foldedStarts.clear();
+    foldControls.replaceChildren();
   }
 
   function collapseAllFolds() {
@@ -1449,6 +1466,7 @@
     codeMode = enabled;
     if (enabled) xmlMode = false;
     loadModeDraft(enabled ? 'code' : 'json');
+    resetFoldState();
     document.body.classList.toggle('code-mode', enabled);
     document.body.classList.toggle('xml-mode', xmlMode);
     codeModeButton.classList.toggle('active', enabled);
@@ -1480,6 +1498,7 @@
     xmlConvertible = false;
     if (enabled) codeMode = false;
     loadModeDraft(enabled ? 'xml' : 'json');
+    resetFoldState();
     document.body.classList.toggle('xml-mode', enabled);
     document.body.classList.toggle('code-mode', codeMode);
     codeModeButton.classList.toggle('active', codeMode);

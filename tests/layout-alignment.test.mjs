@@ -75,6 +75,8 @@ assert.match(script, /compressedState/);
 assert.match(script, /const modeDrafts = \{ json: '', xml: '', code: '' \}/);
 assert.match(script, /function captureCurrentModeText\(/);
 assert.match(script, /function loadModeDraft\(/);
+assert.match(script, /function resetFoldState\(\)/);
+assert.match(script, /loadModeDraft\(enabled \? 'xml' : 'json'\);\s+resetFoldState\(\)/);
 assert.match(script, /modeDrafts: \{ \.\.\.modeDrafts \}/);
 assert.match(script, /modeDrafts\.xml = source;[\s\S]{0,80}modeDrafts\.json = json/);
 assert.match(script, /window\.JsonBoardDiff\.lineDiff/);
