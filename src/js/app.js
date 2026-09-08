@@ -44,7 +44,6 @@
   const replaceButton = document.querySelector('[data-action="replace"]');
   const codeModeButton = document.querySelector('[data-action="code-mode"]');
   const xmlModeButton = document.querySelector('[data-action="xml-mode"]');
-  const xmlToJsonButton = document.querySelector('[data-action="xml-to-json"]');
   const languageBadge = document.querySelector('#languageBadge');
   const lineNumbersButton = document.querySelector('[data-action="line-numbers"]');
   const hideNullButton = document.querySelector('[data-action="hide-null"]');
@@ -1168,9 +1167,9 @@
     if (!source.trim()) return false;
     try {
       const json = window.JsonBoardXml.toJson(source, 4);
-      setXmlMode(false, { persist: false, announceResult: false });
       input.value = json;
       canonicalText = json;
+      setXmlMode(false, { persist: false, announceResult: false });
       input.scrollTop = 0;
       input.scrollLeft = 0;
       editorCache.delete(input);
@@ -1378,14 +1377,14 @@
     hideNullButton.disabled = jsonToolsDisabled;
     formatButton.disabled = compareMode;
     xmlModeButton.disabled = compareMode;
-    xmlToJsonButton.hidden = !xmlMode || compareMode;
     collapseAllButton.disabled = structuredToolsDisabled;
     expandAllButton.disabled = structuredToolsDisabled;
     const jsonModeActive = !compareMode && !codeMode && !xmlMode;
     formatButton.classList.toggle('active', jsonModeActive);
     formatButton.setAttribute('aria-pressed', String(jsonModeActive));
-    formatButton.setAttribute('aria-label', codeMode || xmlMode ? '切换到 Json 模式' : '格式化 JSON');
-    formatButton.title = codeMode || xmlMode ? '切换到 Json 模式' : '格式化 JSON（⌘/Ctrl + Enter）';
+    formatButton.querySelector('span').textContent = xmlMode ? '解析为 JSON' : 'Json 模式';
+    formatButton.setAttribute('aria-label', xmlMode ? '将 XML 解析为 JSON' : codeMode ? '切换到 Json 模式' : '格式化 JSON');
+    formatButton.title = xmlMode ? '解析当前 XML 并切换到 Json 模式' : codeMode ? '切换到 Json 模式' : '格式化 JSON（⌘/Ctrl + Enter）';
     xmlModeButton.classList.toggle('active', xmlMode);
     xmlModeButton.setAttribute('aria-pressed', String(xmlMode));
     xmlModeButton.setAttribute('aria-label', xmlMode ? '格式化 XML' : '切换到 XML 模式');
@@ -1569,10 +1568,9 @@
       if (xmlMode) void formatXml();
       else setXmlMode(true);
     }
-    if (button.dataset.action === 'xml-to-json') convertXmlToJson();
     if (button.dataset.action === 'format') {
       if (codeMode) setCodeMode(false);
-      else if (xmlMode) setXmlMode(false);
+      else if (xmlMode) convertXmlToJson();
       else void formatJson();
     }
     if (button.dataset.action === 'compare') setCompareMode(!compareMode);
