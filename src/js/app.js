@@ -60,6 +60,7 @@
   let xmlConvertible = false;
   let hideNullValues = false;
   let canonicalText = '';
+  const modeDrafts = { json: '', xml: '', code: '' };
   let diffChanges = [];
   let currentChangeIndex = -1;
   let syncingScroll = false;
@@ -84,6 +85,25 @@
   const foldedStarts = new Set();
   const editorCache = new WeakMap();
   const bracketCache = new WeakMap();
+
+  function currentModeKey() {
+    if (codeMode) return 'code';
+    if (xmlMode) return 'xml';
+    return 'json';
+  }
+
+  function captureCurrentModeText() {
+    const mode = currentModeKey();
+    modeDrafts[mode] = mode === 'json' && hideNullValues ? canonicalText : currentPrimaryText();
+    if (mode === 'json') canonicalText = modeDrafts.json;
+  }
+
+  function loadModeDraft(mode) {
+    input.value = modeDrafts[mode] || '';
+    input.scrollTop = 0;
+    input.scrollLeft = 0;
+    if (mode === 'json') canonicalText = modeDrafts.json;
+  }
   const languageCache = new WeakMap();
   const LARGE_TEXT_LENGTH = 150000;
   const LOCAL_STORAGE_TEXT_LIMIT = 1500000;
@@ -878,10 +898,12 @@
   function saveState() {
     clearTimeout(persistTimer);
     const revision = ++persistRevision;
+    captureCurrentModeText();
     const fullPrimaryText = currentPrimaryText();
     const state = {
       leftText: hideNullValues ? canonicalText : fullPrimaryText,
-      canonicalText: hideNullValues ? canonicalText : fullPrimaryText,
+      canonicalText: modeDrafts.json,
+      modeDrafts: { ...modeDrafts },
       filteredText: hideNullValues ? fullPrimaryText : '',
       rightText: compareInput.value,
       compareMode,
@@ -907,7 +929,10 @@
 
   function scheduleSave() {
     clearTimeout(persistTimer);
-    const size = currentPrimaryText().length + compareInput.value.length;
+    const activeMode = currentModeKey();
+    const size = Object.entries(modeDrafts).reduce((total, [mode, text]) => (
+      total + (mode === activeMode ? currentPrimaryText().length : text.length)
+    ), compareInput.value.length);
     persistTimer = setTimeout(saveState, size > LARGE_TEXT_LENGTH ? 180 : 80);
   }
 
@@ -1180,9 +1205,10 @@
     if (!source.trim()) return false;
     try {
       const json = window.JsonBoardXml.toJson(source, 4);
-      input.value = json;
+      modeDrafts.xml = source;
+      modeDrafts.json = json;
       canonicalText = json;
-      setXmlMode(false, { persist: false, announceResult: false });
+      setXmlMode(false, { persist: false, announceResult: false, capture: false });
       input.scrollTop = 0;
       input.scrollLeft = 0;
       editorCache.delete(input);
@@ -1416,11 +1442,13 @@
     hideNullButton.title = '隐藏 null 值';
   }
 
-  function setCodeMode(enabled, { persist = true, announceResult = true } = {}) {
+  function setCodeMode(enabled, { persist = true, announceResult = true, capture = true } = {}) {
+    if (capture) captureCurrentModeText();
     if (enabled) leaveHiddenNullMode();
     if (enabled) expandAllFolds();
     codeMode = enabled;
     if (enabled) xmlMode = false;
+    loadModeDraft(enabled ? 'code' : 'json');
     document.body.classList.toggle('code-mode', enabled);
     document.body.classList.toggle('xml-mode', xmlMode);
     codeModeButton.classList.toggle('active', enabled);
@@ -1444,12 +1472,14 @@
     return true;
   }
 
-  function setXmlMode(enabled, { persist = true, announceResult = true } = {}) {
+  function setXmlMode(enabled, { persist = true, announceResult = true, capture = true } = {}) {
+    if (capture) captureCurrentModeText();
     if (enabled) leaveHiddenNullMode();
     expandAllFolds();
     xmlMode = enabled;
     xmlConvertible = false;
     if (enabled) codeMode = false;
+    loadModeDraft(enabled ? 'xml' : 'json');
     document.body.classList.toggle('xml-mode', enabled);
     document.body.classList.toggle('code-mode', codeMode);
     codeModeButton.classList.toggle('active', codeMode);
@@ -1522,7 +1552,9 @@
         xmlConvertible = false;
         updateModeControls();
       }
-      if (!hideNullValues) canonicalText = currentPrimaryText();
+      const mode = currentModeKey();
+      if (mode === 'json' && !hideNullValues) canonicalText = currentPrimaryText();
+      modeDrafts[mode] = mode === 'json' && hideNullValues ? canonicalText : currentPrimaryText();
       clearTimeout(renderTimer);
       renderTimer = setTimeout(() => {
         if (compareMode) updateDiff();
@@ -1700,16 +1732,26 @@
 
   const saved = await loadState();
   if (!userEditedBeforeRestore) {
-    canonicalText = typeof saved?.canonicalText === 'string'
-      ? saved.canonicalText
-      : typeof saved?.leftText === 'string' ? saved.leftText : '';
-    hideNullValues = Boolean(saved?.hideNullValues);
+    const restoredMode = saved?.xmlMode ? 'xml' : saved?.codeMode ? 'code' : 'json';
+    const savedDrafts = saved?.modeDrafts && typeof saved.modeDrafts === 'object' ? saved.modeDrafts : null;
+    for (const mode of Object.keys(modeDrafts)) {
+      modeDrafts[mode] = typeof savedDrafts?.[mode] === 'string' ? savedDrafts[mode] : '';
+    }
+    if (!savedDrafts) {
+      const legacyText = typeof saved?.leftText === 'string'
+        ? saved.leftText
+        : typeof saved?.canonicalText === 'string' ? saved.canonicalText : '';
+      modeDrafts[restoredMode] = legacyText;
+    }
+    canonicalText = modeDrafts.json;
+    hideNullValues = restoredMode === 'json' && Boolean(saved?.hideNullValues);
     input.value = hideNullValues && typeof saved?.filteredText === 'string' && saved.filteredText
       ? saved.filteredText
-      : canonicalText;
+      : modeDrafts.json;
     compareInput.value = typeof saved?.rightText === 'string' ? saved.rightText : '';
   } else {
     canonicalText = input.value;
+    modeDrafts.json = input.value;
     hideNullValues = false;
   }
 
@@ -1727,8 +1769,8 @@
   hideNullButton.setAttribute('aria-pressed', String(hideNullValues));
   hideNullButton.setAttribute('aria-label', hideNullValues ? '显示值为 null 的键值' : '隐藏值为 null 的键值');
   hideNullButton.title = hideNullValues ? '显示 null 值' : '隐藏 null 值';
-  if (saved?.xmlMode) setXmlMode(true, { persist: false, announceResult: false });
-  else if (saved?.codeMode) setCodeMode(true, { persist: false, announceResult: false });
+  if (saved?.xmlMode) setXmlMode(true, { persist: false, announceResult: false, capture: false });
+  else if (saved?.codeMode) setCodeMode(true, { persist: false, announceResult: false, capture: false });
   else updateModeControls();
   updateEditor(input, primaryHighlight, lineNumbers);
   updateEditor(compareInput, compareHighlight, compareLineNumbers);
