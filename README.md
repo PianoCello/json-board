@@ -5,7 +5,7 @@
 <h1 align="center">JSON Board</h1>
 
 <p align="center">
-  一个离线优先、打开即用的 JSON 与代码工作台。
+  一个离线优先、打开即用的 JSON、XML 与代码工作台。
   <br>
   格式化、折叠、诊断、代码高亮、查找替换和文本对比，全都留在本地浏览器里完成。
 </p>
@@ -29,7 +29,8 @@ JSON Board 不需要安装、不需要构建，也不会把文本传到服务器
 
 | 能力 | 说明 |
 | --- | --- |
-| JSON 工作台 | 自动格式化、行号、折叠、片段复制、一键展开与隐藏 `null` |
+| JSON 工作台 | 粘贴自动格式化、行号、折叠、片段复制、一键展开与隐藏 `null` |
+| XML 工作台 | 粘贴自动格式化、语法高亮、标签折叠、子元素计数、片段复制与中文错误定位 |
 | 中文诊断 | 定位缺逗号、多括号、错误引号、非法转义等常见 JSON 问题 |
 | 代码模式 | 自动识别 JavaScript、TypeScript、Python、Java、SQL、Shell、HTML、CSS、Go、Rust 等语言 |
 | 查找替换 | 所有匹配与当前匹配独立高亮，支持上一处、下一处、替换和全部替换 |
@@ -37,7 +38,7 @@ JSON Board 不需要安装、不需要构建，也不会把文本传到服务器
 | 大文件优化 | 纵向与横向虚拟渲染，超大文本使用 IndexedDB 与 gzip 本地备份 |
 | 刷新恢复 | 自动保存当前文本、显示模式、行号和隐藏 `null` 状态 |
 
-## 三种工作模式
+## 工作模式
 
 <table>
   <tr>
@@ -78,7 +79,7 @@ npm run serve
 
 | 快捷键 | 功能 |
 | --- | --- |
-| `Ctrl/Command + Enter` | 格式化 JSON |
+| `Ctrl/Command + Enter` | 格式化当前 JSON 或 XML |
 | `Ctrl + H` | Windows 打开查找替换 |
 | `Command + Option + F` | macOS 打开查找替换 |
 | `Ctrl/Command + F` | 保留浏览器原生搜索 |
@@ -101,7 +102,8 @@ json-board/
 │       ├── app.js          # 应用状态与交互
 │       ├── diff-utils.js   # 行级差异算法
 │       ├── editor-utils.js # 括号配对等编辑能力
-│       └── json-diagnostics.js
+│       ├── json-diagnostics.js
+│       └── xml-utils.js    # XML 格式化、诊断与折叠
 ├── tests/                  # Node.js 回归测试
 ├── vendor/highlightjs/     # 离线语法高亮与许可证
 ├── index.html              # 无构建步骤的应用入口
@@ -118,7 +120,7 @@ json-board/
 npm run verify
 ```
 
-该命令会进行 JavaScript 语法检查，并运行差异算法、括号配对、JSON 中文诊断和页面结构契约测试。每次推送和 Pull Request 也会由 GitHub Actions 自动执行同一套验证。
+该命令会进行 JavaScript 语法检查，并运行差异算法、括号配对、JSON 中文诊断、XML 格式化与诊断，以及页面结构契约测试。每次推送和 Pull Request 也会由 GitHub Actions 自动执行同一套验证。
 
 ## 隐私与离线能力
 

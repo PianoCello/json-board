@@ -9,7 +9,7 @@
   <link rel="icon" href="./public/icons/favicon.svg" type="image/svg+xml">
   <link rel="alternate icon" href="./public/icons/favicon.png" type="image/png" sizes="128x128">
   <link rel="apple-touch-icon" href="./public/icons/favicon.png">
-  <link rel="stylesheet" href="./src/css/app.css?v=20260903-7">
+  <link rel="stylesheet" href="./src/css/app.css?v=20260908-1">
 </head>
 <body>
   <main class="app" aria-label="JSON 看板">
@@ -36,6 +36,10 @@
         <button class="format-json-button active" type="button" data-action="format" title="格式化 JSON（⌘/Ctrl + Enter）" aria-label="格式化 JSON" aria-pressed="true">
           <svg viewBox="0 0 24 24"><path d="M8 4H5a2 2 0 0 0-2 2v3M16 4h3a2 2 0 0 1 2 2v3M8 20H5a2 2 0 0 1-2-2v-3M16 20h3a2 2 0 0 0 2-2v-3M9 8l-2 4 2 4M15 8l2 4-2 4"/></svg>
           <span>Json 模式</span>
+        </button>
+        <button class="xml-mode-button" type="button" data-action="xml-mode" title="切换到 XML 模式" aria-label="切换到 XML 模式" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><path d="M14 3h-4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9zM14 3v6h6M12 13l-2 2 2 2M16 13l2 2-2 2"/></svg>
+          <span>XML 模式</span>
         </button>
         <button class="code-mode-button" type="button" data-action="code-mode" title="代码模式（自动识别语言）" aria-label="开启代码模式" aria-pressed="false">
           <svg viewBox="0 0 24 24"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg>
@@ -106,9 +110,9 @@
         <div class="code-stage">
           <div class="diff-backdrop" aria-hidden="true"><div id="leftDiffLines" class="diff-lines"></div></div>
           <div id="primarySearchHighlights" class="search-highlights" aria-hidden="true"></div>
-          <div id="foldControls" class="fold-controls" aria-label="JSON 折叠控件"></div>
+          <div id="foldControls" class="fold-controls" aria-label="结构折叠控件"></div>
           <pre id="primaryHighlight" class="syntax-layer" aria-hidden="true"></pre>
-          <textarea id="jsonInput" aria-label="请输入 JSON 或代码文本" placeholder="请输入 JSON 数据…" spellcheck="false"></textarea>
+          <textarea id="jsonInput" aria-label="请输入 JSON 数据" placeholder="请输入 JSON 数据…" spellcheck="false"></textarea>
         </div>
       </section>
 
@@ -129,7 +133,7 @@
       <div class="error-card-icon" aria-hidden="true">!</div>
       <div class="error-card-body">
         <div class="error-card-heading">
-          <strong>JSON 格式有问题</strong>
+          <strong id="errorTitle">JSON 格式有问题</strong>
           <span id="errorLocation"></span>
         </div>
         <p id="errorMessage"></p>
@@ -144,8 +148,9 @@
   </main>
   <script src="./vendor/highlightjs/highlight.min.js?v=11.11.1"></script>
   <script src="./src/js/json-diagnostics.js?v=20260903-3"></script>
+  <script src="./src/js/xml-utils.js?v=20260908-1"></script>
   <script src="./src/js/editor-utils.js?v=20260903-3"></script>
   <script src="./src/js/diff-utils.js?v=20260903-3"></script>
-  <script src="./src/js/app.js?v=20260903-9"></script>
+  <script src="./src/js/app.js?v=20260908-1"></script>
 </body>
 </html>

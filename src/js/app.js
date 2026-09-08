@@ -24,6 +24,7 @@
   const nextChange = document.querySelector('#nextChange');
   const changePosition = document.querySelector('#changePosition');
   const errorCard = document.querySelector('#errorCard');
+  const errorTitle = document.querySelector('#errorTitle');
   const errorLocation = document.querySelector('#errorLocation');
   const errorMessage = document.querySelector('#errorMessage');
   const errorSuggestion = document.querySelector('#errorSuggestion');
@@ -42,6 +43,7 @@
   const closeReplace = document.querySelector('#closeReplace');
   const replaceButton = document.querySelector('[data-action="replace"]');
   const codeModeButton = document.querySelector('[data-action="code-mode"]');
+  const xmlModeButton = document.querySelector('[data-action="xml-mode"]');
   const languageBadge = document.querySelector('#languageBadge');
   const lineNumbersButton = document.querySelector('[data-action="line-numbers"]');
   const hideNullButton = document.querySelector('[data-action="hide-null"]');
@@ -54,6 +56,7 @@
 
   let compareMode = false;
   let codeMode = false;
+  let xmlMode = false;
   let hideNullValues = false;
   let canonicalText = '';
   let diffChanges = [];
@@ -206,7 +209,7 @@
   function updateEditor(editor, highlight, numbers) {
     const data = lineIndex(editor);
     const { start, end } = visibleLines(editor, data);
-    const language = codeMode ? detectCodeLanguage(editor, data.text) : null;
+    const language = codeMode ? detectCodeLanguage(editor, data.text) : xmlMode ? 'xml' : null;
     let renderedText;
     let renderedLines;
     let horizontalStart = 0;
@@ -229,7 +232,7 @@
       }
       renderedText = renderedLines.map(line => line.text).join('\n');
     } else renderedText = data.text;
-    highlight.innerHTML = codeMode
+    highlight.innerHTML = codeMode || xmlMode
       ? highlightProgrammingCode(renderedText, language)
       : data.large
         ? renderedLines.map(line => highlightCode(line.text, line.offset)).join('\n')
@@ -303,7 +306,7 @@
     });
   }
 
-  function findFoldRanges(text) {
+  function findJsonFoldRanges(text) {
     const ranges = [];
     const stack = [];
     let line = 0;
@@ -369,6 +372,10 @@
     return ranges.sort((first, second) => first.startLine - second.startLine || second.endLine - first.endLine);
   }
 
+  function findFoldRanges(text) {
+    return xmlMode ? window.JsonBoardXml.foldRanges(text) : findJsonFoldRanges(text);
+  }
+
   function currentPrimaryText() {
     return foldedStarts.size ? foldSourceText : input.value;
   }
@@ -410,7 +417,9 @@
       button.type = 'button';
       button.className = `fold-button${row.collapsed ? ' collapsed' : ''}`;
       button.textContent = row.collapsed ? '+' : '−';
-      const countDescription = row.range.opening === '[' ? `（${row.range.itemCount} 项）` : '';
+      const countDescription = row.range.opening === '['
+        ? `（${row.range.itemCount} 项）`
+        : row.range.type === 'xml-element' ? `（${row.range.itemCount} 个子元素）` : '';
       button.title = `${row.collapsed ? '展开' : '折叠'}片段${countDescription}`;
       button.setAttribute('aria-label', `${row.collapsed ? '展开' : '折叠'}第 ${row.fullLine + 1} 行片段${countDescription}`);
       button.style.top = `${y - input.scrollTop + (lineHeight - 17) / 2}px`;
@@ -424,8 +433,10 @@
         copyButton.type = 'button';
         copyButton.className = 'fragment-copy-button';
         copyButton.innerHTML = '<svg viewBox="0 0 18 18" aria-hidden="true"><rect x="6" y="6" width="8" height="9" rx="1"/><path d="M12 6V3H3v9h3"/></svg>';
-        const fragmentType = row.range.opening === '[' ? '数组' : '对象';
-        const countDescription = row.range.opening === '[' ? `（${row.range.itemCount} 项）` : '';
+        const fragmentType = row.range.opening === '[' ? '数组' : row.range.type === 'xml-element' ? 'XML 元素' : '对象';
+        const countDescription = row.range.opening === '['
+          ? `（${row.range.itemCount} 项）`
+          : row.range.type === 'xml-element' ? `（${row.range.itemCount} 个子元素）` : '';
         copyButton.title = `复制当前${fragmentType}${countDescription}`;
         copyButton.setAttribute('aria-label', `复制第 ${row.fullLine + 1} 行${fragmentType}${countDescription}`);
         copyButton.style.top = `${y - input.scrollTop + (lineHeight - 17) / 2}px`;
@@ -456,7 +467,9 @@
       if (range && foldedStarts.has(fullLine)) {
         const prefix = lines[fullLine].slice(0, range.openColumn + 1);
         const suffix = lines[range.endLine].slice(range.closeColumn);
-        const countLabel = range.opening === '[' ? ` ${range.itemCount} 项` : '';
+        const countLabel = range.opening === '['
+          ? ` ${range.itemCount} 项`
+          : range.type === 'xml-element' ? ` ${range.itemCount} 个子元素` : '';
         output.push(`${prefix} …${countLabel} ${suffix}`);
         foldRows.push({ displayLine, fullLine, range, collapsed: true });
         foldDisplayMap.push({ fullLine, range, collapsed: true });
@@ -851,6 +864,7 @@
         compressedState,
         compareMode: state.compareMode,
         codeMode: state.codeMode,
+        xmlMode: state.xmlMode,
         lineNumbers: state.lineNumbers,
         hideNullValues: state.hideNullValues,
         split: state.split,
@@ -871,10 +885,11 @@
       rightText: compareInput.value,
       compareMode,
       codeMode,
+      xmlMode,
       lineNumbers: document.body.classList.contains('show-lines'),
       hideNullValues,
       split: Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--split')) || 50,
-      foldedLines: compareMode ? [] : [...foldedStarts]
+      foldedLines: compareMode || codeMode ? [] : [...foldedStarts]
     };
     try {
       const serialized = JSON.stringify(state);
@@ -902,6 +917,7 @@
       return;
     }
     if (!force && dismissedDiagnosticText === currentPrimaryText()) return;
+    errorTitle.textContent = xmlMode ? 'XML 格式有问题' : 'JSON 格式有问题';
     errorLocation.textContent = `第 ${problem.line} 行 · 第 ${problem.column} 列`;
     errorMessage.textContent = problem.message;
     errorSuggestion.textContent = `建议：${problem.suggestion}`;
@@ -919,7 +935,7 @@
       renderDiagnostic(null);
       return { valid: true, empty: true };
     }
-    const result = window.JsonDiagnostics.analyze(text);
+    const result = xmlMode ? window.JsonBoardXml.analyze(text) : window.JsonDiagnostics.analyze(text);
     renderDiagnostic(result, { force });
     return result;
   }
@@ -993,6 +1009,28 @@
     });
   }
 
+  function formatXmlInWorker(text) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(new Blob([window.JsonBoardXml.workerSource], { type: 'text/javascript' }));
+      const worker = new Worker(url);
+      worker.onmessage = event => {
+        worker.terminate();
+        URL.revokeObjectURL(url);
+        if (event.data.error) {
+          const error = new Error(event.data.error);
+          error.problem = event.data.problem;
+          reject(error);
+        } else resolve(event.data.text);
+      };
+      worker.onerror = event => {
+        worker.terminate();
+        URL.revokeObjectURL(url);
+        reject(new Error(event.message || 'XML 格式化失败'));
+      };
+      worker.postMessage({ text, indentSize: 4 });
+    });
+  }
+
   function mergePreservingNulls(original, edited) {
     if (Array.isArray(edited)) {
       const oldArray = Array.isArray(original) ? original : [];
@@ -1057,7 +1095,7 @@
   }
 
   async function formatJson({ announceResult = true } = {}) {
-    if (codeMode) return false;
+    if (codeMode || xmlMode) return false;
     expandAllFolds();
     const source = currentPrimaryText();
     if (source.length > LARGE_TEXT_LENGTH) {
@@ -1093,8 +1131,37 @@
     return true;
   }
 
+  async function formatXml({ announceResult = true } = {}) {
+    if (!xmlMode || codeMode) return false;
+    expandAllFolds();
+    const source = currentPrimaryText();
+    if (!source.trim()) return false;
+    errorCard.hidden = true;
+    if (announceResult && source.length > LARGE_TEXT_LENGTH) announce('正在后台格式化大文件…');
+    try {
+      const formatted = source.length > LARGE_TEXT_LENGTH
+        ? await formatXmlInWorker(source)
+        : window.JsonBoardXml.format(source, 4);
+      if (currentPrimaryText() !== source) return false;
+      input.value = formatted;
+      canonicalText = formatted;
+      editorCache.delete(input);
+      updateEditor(input, primaryHighlight, lineNumbers);
+      scheduleFoldScan();
+      scheduleDiagnostics();
+      scheduleSave();
+      if (announceResult) announce('XML 格式化完成');
+      return true;
+    } catch (error) {
+      const diagnostic = error.problem || window.JsonBoardXml.analyze(source);
+      renderDiagnostic(diagnostic, { force: true });
+      if (announceResult) announce('XML 格式有误');
+      return false;
+    }
+  }
+
   function autoFormatCompactJson() {
-    if (compareMode || codeMode) return;
+    if (compareMode || codeMode || xmlMode) return;
     const raw = input.value.trim();
     if (!raw) {
       renderDiagnostic(null);
@@ -1111,6 +1178,46 @@
     }
     if (!raw.includes('\n')) void formatJson({ announceResult: false });
     else scheduleDiagnostics();
+  }
+
+  function autoFormatCompactXml() {
+    if (compareMode || codeMode || !xmlMode) return;
+    const raw = input.value.trim();
+    if (!raw) {
+      renderDiagnostic(null);
+      return;
+    }
+    if (raw.length > LARGE_TEXT_LENGTH) {
+      if (!largeFileNoticeShown) {
+        largeFileNoticeShown = true;
+        announce('大文件已启用极速渲染，按 ⌘/Ctrl + Enter 格式化');
+      }
+      scheduleFoldScan();
+      scheduleDiagnostics();
+      return;
+    }
+    if (!raw.includes('\n')) void formatXml({ announceResult: false });
+    else {
+      scheduleFoldScan();
+      scheduleDiagnostics();
+    }
+  }
+
+  function autoFormatStructuredText() {
+    if (xmlMode) autoFormatCompactXml();
+    else autoFormatCompactJson();
+  }
+
+  async function formatPastedStructuredText() {
+    if (compareMode || codeMode) return;
+    input.scrollLeft = 0;
+    syncVisualScroll(input, primaryHighlight, lineNumbers);
+    const formatted = xmlMode
+      ? await formatXml({ announceResult: false })
+      : await formatJson({ announceResult: false });
+    input.scrollLeft = 0;
+    syncVisualScroll(input, primaryHighlight, lineNumbers);
+    if (formatted) announce(xmlMode ? 'XML 已自动格式化' : 'JSON 已自动格式化');
   }
 
   async function copyText() {
@@ -1237,39 +1344,48 @@
   }
 
   function updateModeControls() {
-    const jsonToolsDisabled = compareMode || codeMode;
+    const jsonToolsDisabled = compareMode || codeMode || xmlMode;
+    const structuredToolsDisabled = compareMode || codeMode;
     hideNullButton.disabled = jsonToolsDisabled;
     formatButton.disabled = compareMode;
-    collapseAllButton.disabled = jsonToolsDisabled;
-    expandAllButton.disabled = jsonToolsDisabled;
-    const jsonModeActive = !compareMode && !codeMode;
+    xmlModeButton.disabled = compareMode;
+    collapseAllButton.disabled = structuredToolsDisabled;
+    expandAllButton.disabled = structuredToolsDisabled;
+    const jsonModeActive = !compareMode && !codeMode && !xmlMode;
     formatButton.classList.toggle('active', jsonModeActive);
     formatButton.setAttribute('aria-pressed', String(jsonModeActive));
-    formatButton.setAttribute('aria-label', codeMode ? '切换到 Json 模式' : '格式化 JSON');
-    formatButton.title = codeMode ? '切换到 Json 模式' : '格式化 JSON（⌘/Ctrl + Enter）';
+    formatButton.setAttribute('aria-label', codeMode || xmlMode ? '切换到 Json 模式' : '格式化 JSON');
+    formatButton.title = codeMode || xmlMode ? '切换到 Json 模式' : '格式化 JSON（⌘/Ctrl + Enter）';
+    xmlModeButton.classList.toggle('active', xmlMode);
+    xmlModeButton.setAttribute('aria-pressed', String(xmlMode));
+    xmlModeButton.setAttribute('aria-label', xmlMode ? '格式化 XML' : '切换到 XML 模式');
+    xmlModeButton.title = xmlMode ? '格式化 XML（⌘/Ctrl + Enter）' : '切换到 XML 模式';
+  }
+
+  function leaveHiddenNullMode() {
+    if (!hideNullValues) return;
+    if (!syncCanonicalFromFiltered()) canonicalText = currentPrimaryText();
+    hideNullValues = false;
+    input.value = canonicalText;
+    hideNullButton.classList.remove('active');
+    hideNullButton.setAttribute('aria-pressed', 'false');
+    hideNullButton.setAttribute('aria-label', '隐藏值为 null 的键值');
+    hideNullButton.title = '隐藏 null 值';
   }
 
   function setCodeMode(enabled, { persist = true, announceResult = true } = {}) {
-    if (enabled && hideNullValues) {
-      if (!syncCanonicalFromFiltered()) {
-        // 用户可能已把隐藏 null 后的 JSON 替换为代码；进入代码模式时保留当前原文。
-        canonicalText = currentPrimaryText();
-      }
-      hideNullValues = false;
-      input.value = canonicalText;
-      hideNullButton.classList.remove('active');
-      hideNullButton.setAttribute('aria-pressed', 'false');
-      hideNullButton.setAttribute('aria-label', '隐藏值为 null 的键值');
-      hideNullButton.title = '隐藏 null 值';
-    }
+    if (enabled) leaveHiddenNullMode();
     if (enabled) expandAllFolds();
     codeMode = enabled;
+    if (enabled) xmlMode = false;
     document.body.classList.toggle('code-mode', enabled);
+    document.body.classList.toggle('xml-mode', xmlMode);
     codeModeButton.classList.toggle('active', enabled);
     codeModeButton.setAttribute('aria-pressed', String(enabled));
     codeModeButton.setAttribute('aria-label', enabled ? '关闭代码模式' : '开启代码模式');
     codeModeButton.title = enabled ? '关闭代码模式' : '代码模式（自动识别语言）';
     input.placeholder = enabled ? '请输入代码…' : '请输入 JSON 数据…';
+    input.setAttribute('aria-label', enabled ? '请输入代码文本' : '请输入 JSON 数据');
     languageBadge.hidden = true;
     updateModeControls();
     renderDiagnostic(null);
@@ -1282,6 +1398,36 @@
     }
     if (persist) scheduleSave();
     if (announceResult) announce(enabled ? '已开启代码模式，正在自动识别语言' : '已返回 JSON 模式');
+    return true;
+  }
+
+  function setXmlMode(enabled, { persist = true, announceResult = true } = {}) {
+    if (enabled) leaveHiddenNullMode();
+    expandAllFolds();
+    xmlMode = enabled;
+    if (enabled) codeMode = false;
+    document.body.classList.toggle('xml-mode', enabled);
+    document.body.classList.toggle('code-mode', codeMode);
+    codeModeButton.classList.toggle('active', codeMode);
+    codeModeButton.setAttribute('aria-pressed', String(codeMode));
+    codeModeButton.setAttribute('aria-label', codeMode ? '关闭代码模式' : '开启代码模式');
+    codeModeButton.title = codeMode ? '关闭代码模式' : '代码模式（自动识别语言）';
+    input.placeholder = enabled ? '请输入 XML…' : '请输入 JSON 数据…';
+    input.setAttribute('aria-label', enabled ? '请输入 XML 文本' : '请输入 JSON 数据');
+    languageBadge.hidden = true;
+    updateModeControls();
+    renderDiagnostic(null);
+    foldControls.replaceChildren();
+    updateEditor(input, primaryHighlight, lineNumbers);
+    updateEditor(compareInput, compareHighlight, compareLineNumbers);
+    if (!enabled && !compareMode) {
+      scheduleFoldScan();
+      scheduleDiagnostics();
+    } else if (enabled && !compareMode) {
+      autoFormatCompactXml();
+    }
+    if (persist) scheduleSave();
+    if (announceResult) announce(enabled ? '已切换到 XML 模式' : '已返回 JSON 模式');
     return true;
   }
 
@@ -1305,7 +1451,7 @@
       clearDiff();
       updateEditor(input, primaryHighlight, lineNumbers);
       if (!codeMode) {
-        autoFormatCompactJson();
+        autoFormatStructuredText();
         scheduleFoldScan();
       }
     }
@@ -1333,7 +1479,7 @@
       renderTimer = setTimeout(() => {
         if (compareMode) updateDiff();
         else if (!codeMode) {
-          autoFormatCompactJson();
+          autoFormatStructuredText();
           scheduleFoldScan();
         }
       }, 180);
@@ -1367,7 +1513,8 @@
       }
       if (editor === input && !compareMode && !codeMode && (event.ctrlKey || event.metaKey) && event.key === 'Enter') {
         event.preventDefault();
-        void formatJson();
+        if (xmlMode) void formatXml();
+        else void formatJson();
       }
     });
   }
@@ -1388,8 +1535,13 @@
       else closeReplacePanel();
     }
     if (button.dataset.action === 'code-mode') setCodeMode(!codeMode);
+    if (button.dataset.action === 'xml-mode') {
+      if (xmlMode) void formatXml();
+      else setXmlMode(true);
+    }
     if (button.dataset.action === 'format') {
       if (codeMode) setCodeMode(false);
+      else if (xmlMode) setXmlMode(false);
       else void formatJson();
     }
     if (button.dataset.action === 'compare') setCompareMode(!compareMode);
@@ -1409,6 +1561,9 @@
   const expandBeforePrimaryEdit = () => expandAllFolds({ preserveSelection: true });
   input.addEventListener('beforeinput', expandBeforePrimaryEdit);
   input.addEventListener('paste', expandBeforePrimaryEdit, { capture: true });
+  input.addEventListener('paste', () => {
+    requestAnimationFrame(() => void formatPastedStructuredText());
+  });
   input.addEventListener('cut', expandBeforePrimaryEdit, { capture: true });
   input.addEventListener('keydown', event => {
     if (!foldedStarts.size) return;
@@ -1523,7 +1678,8 @@
   hideNullButton.setAttribute('aria-pressed', String(hideNullValues));
   hideNullButton.setAttribute('aria-label', hideNullValues ? '显示值为 null 的键值' : '隐藏值为 null 的键值');
   hideNullButton.title = hideNullValues ? '显示 null 值' : '隐藏 null 值';
-  if (saved?.codeMode) setCodeMode(true, { persist: false, announceResult: false });
+  if (saved?.xmlMode) setXmlMode(true, { persist: false, announceResult: false });
+  else if (saved?.codeMode) setCodeMode(true, { persist: false, announceResult: false });
   else updateModeControls();
   updateEditor(input, primaryHighlight, lineNumbers);
   updateEditor(compareInput, compareHighlight, compareLineNumbers);

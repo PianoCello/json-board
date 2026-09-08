@@ -2,7 +2,7 @@
   "name": "json-board",
   "version": "1.0.0",
   "private": false,
-  "description": "Offline-first JSON and code editor with folding, diagnostics, search/replace and text diff.",
+  "description": "Offline-first JSON, XML and code editor with folding, diagnostics, search/replace and text diff.",
   "license": "MIT",
   "repository": {
     "type": "git",
