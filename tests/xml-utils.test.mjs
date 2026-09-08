@@ -24,6 +24,31 @@ assert.equal(
 );
 assert.equal(xml.format('<p>Hello <b>XML</b> world</p>', 4), '<p>Hello <b>XML</b> world</p>');
 
+const serializedSoap = '"\\\\<soapenv:Envelope xmlns:soapenv=\\"http://schemas.xmlsoap.org/soap/envelope/\\" xmlns:com=\\"common.interfaces.hlgf.com\\"\\><soapenv:Header/><soapenv:Body><com:createWorkflow><com:in0>{\\"baseInfo\\":[{\\"requestName\\":\\"珠光\\\\\\\\面粉\\"}],\\"url\\":\\"https://example.test/file?a=1&b=2\\"}</com:in0></com:createWorkflow></soapenv:Body>\\\\</soapenv:Envelope\\>"';
+assert.equal(xml.analyze(serializedSoap).valid, true);
+const formattedSoap = xml.format(serializedSoap, 4);
+assert.match(formattedSoap, /^<soapenv:Envelope/);
+assert.match(formattedSoap, /<com:in0>/);
+assert.doesNotMatch(formattedSoap, /^"|"$/);
+
+const soapAsJson = JSON.parse(xml.toJson(serializedSoap, 4));
+assert.equal(soapAsJson['soapenv:Envelope']['@attributes']['xmlns:soapenv'], 'http://schemas.xmlsoap.org/soap/envelope/');
+assert.equal(soapAsJson['soapenv:Envelope']['soapenv:Body']['com:createWorkflow']['com:in0'].url, 'https://example.test/file?a=1&b=2');
+
+const logStyleSoap = String.raw`"\<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:com=\"common.interfaces.hlgf.com\"\><soapenv:Body><com:in0>{\"requestName\":\"珠光\面粉\25kg\",\"url\":\"https://example.test/file?a=1&b=2\"}</com:in0></soapenv:Body>\</soapenv:Envelope\>"`;
+assert.equal(xml.analyze(logStyleSoap).valid, true);
+const logStyleJson = JSON.parse(xml.toJson(logStyleSoap));
+assert.equal(logStyleJson['soapenv:Envelope']['soapenv:Body']['com:in0'].requestName, String.raw`珠光\面粉\25kg`);
+assert.equal(logStyleJson['soapenv:Envelope']['soapenv:Body']['com:in0'].url, 'https://example.test/file?a=1&b=2');
+
+const repeatedXml = '<root enabled="true"><item id="1">甲</item><item id="2">乙</item></root>';
+const repeatedAsJson = JSON.parse(xml.toJson(repeatedXml));
+assert.equal(repeatedAsJson.root['@attributes'].enabled, 'true');
+assert.deepEqual(repeatedAsJson.root.item, [
+  { '@attributes': { id: '1' }, '#text': '甲' },
+  { '@attributes': { id: '2' }, '#text': '乙' }
+]);
+
 const ranges = xml.foldRanges('<root>\n    <items>\n        <item/>\n        <item/>\n    </items>\n</root>');
 assert.equal(ranges.length, 2);
 assert.equal(ranges[0].name, 'root');

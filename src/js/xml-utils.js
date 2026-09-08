@@ -3,6 +3,42 @@
 
   const NAME_PATTERN = /^[A-Za-z_][\w.:-]*/;
 
+  function normalizeInput(value) {
+    const original = String(value ?? '');
+    const trimmed = original.trim();
+    if (!trimmed) return '';
+    if (trimmed[0] !== '"' || trimmed.at(-1) !== '"') return trimmed;
+    try {
+      const decoded = JSON.parse(trimmed);
+      if (typeof decoded === 'string') return decoded.trim();
+    } catch (_) {
+      // Some Java/log serializers emit non-standard \< and \> escapes.
+    }
+    const jsonCompatible = trimmed.replace(/\\+([<>])/g, '$1');
+    try {
+      const decoded = JSON.parse(jsonCompatible);
+      if (typeof decoded === 'string') return decoded.trim();
+    } catch (_) {
+      return trimmed.slice(1, -1)
+        .replace(/\\+([<>])/g, '$1')
+        .replace(/\\"/g, '"')
+        .replace(/\\r\\n|\\n|\\r/g, '\n')
+        .replace(/\\t/g, '\t')
+        .trim();
+    }
+    return trimmed;
+  }
+
+  function parseEmbeddedJson(value) {
+    try { return { parsed: true, value: JSON.parse(value) }; } catch (_) { /* Try log-style slashes. */ }
+    try {
+      const repaired = value.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+      return { parsed: true, value: JSON.parse(repaired) };
+    } catch (_) {
+      return { parsed: false, value };
+    }
+  }
+
   function xmlLocation(text, index) {
     const before = text.slice(0, index);
     const lines = before.split('\n');
@@ -69,6 +105,28 @@
         token.name = nameSource.match(NAME_PATTERN)?.[0] || '';
       }
       tokens.push(token);
+      if (type === 'tag' && !token.closing && !token.selfClosing && token.name) {
+        const contentStart = end + (text.slice(end).match(/^\s*/)?.[0].length || 0);
+        const firstCharacter = text[contentStart];
+        if (firstCharacter === '{' || firstCharacter === '[') {
+          const closingStart = text.indexOf(`</${token.name}`, contentStart + 1);
+          if (closingStart > contentStart) {
+            const candidate = text.slice(contentStart, closingStart).trim();
+            if ((firstCharacter === '{' && candidate.endsWith('}'))
+              || (firstCharacter === '[' && candidate.endsWith(']'))) {
+              tokens.push({
+                type: 'text',
+                embeddedJson: true,
+                start: end,
+                end: closingStart,
+                raw: text.slice(end, closingStart)
+              });
+              cursor = closingStart;
+              continue;
+            }
+          }
+        }
+      }
       cursor = end;
     }
     return tokens;
@@ -113,6 +171,7 @@
   }
 
   function analyze(text) {
+    text = normalizeInput(text);
     if (!text.trim()) return { valid: true, empty: true };
     const tokens = tokenize(text);
     const stack = [];
@@ -172,7 +231,7 @@
     }
     if (rootCount === 0) return problem(text, 'missing-root', '没有找到 XML 根元素。', '添加一个包裹全部内容的根元素。', 0, 0);
     for (const token of tokens) {
-      if (token.type !== 'text' && token.type !== 'tag') continue;
+      if ((token.type !== 'text' && token.type !== 'tag') || token.embeddedJson) continue;
       const bareAmpersand = /&(?!#\d+;|#x[\da-fA-F]+;|[A-Za-z_][\w.:-]*;)/.exec(token.raw);
       if (bareAmpersand) return problem(text, 'bare-ampersand', '文本中存在未转义的“&”。', '把普通 & 改为 &amp;，或使用合法的实体引用。', token.start + bareAmpersand.index);
     }
@@ -180,6 +239,7 @@
   }
 
   function format(text, indentSize = 4) {
+    text = normalizeInput(text);
     const result = analyze(text);
     if (!result.valid) {
       const error = new Error(result.message);
@@ -217,6 +277,19 @@
       const matchingIndex = matchingTags.get(index);
       if (Number.isInteger(matchingIndex)) {
         const children = tokens.slice(index + 1, matchingIndex);
+        if (children.length === 1 && children[0].embeddedJson) {
+          const embedded = parseEmbeddedJson(children[0].raw.trim());
+          lines.push(`${indent(depth)}${token.raw.trim()}`);
+          const payload = embedded.parsed
+            ? JSON.stringify(embedded.value, null, indentSize)
+            : children[0].raw.trim();
+          payload.split('\n').forEach(line => {
+            lines.push(`${indent(depth + 1)}${line}`);
+          });
+          lines.push(`${indent(depth)}${tokens[matchingIndex].raw.trim()}`);
+          index = matchingIndex;
+          continue;
+        }
         let childDepth = 0;
         let hasText = false;
         let hasElement = false;
@@ -249,7 +322,99 @@
     return lines.join('\n');
   }
 
+  function decodeEntities(value) {
+    return value.replace(/&(#x[\da-fA-F]+|#\d+|amp|lt|gt|quot|apos);/g, (match, entity) => {
+      if (entity === 'amp') return '&';
+      if (entity === 'lt') return '<';
+      if (entity === 'gt') return '>';
+      if (entity === 'quot') return '"';
+      if (entity === 'apos') return "'";
+      const number = entity[1]?.toLowerCase() === 'x'
+        ? Number.parseInt(entity.slice(2), 16)
+        : Number.parseInt(entity.slice(1), 10);
+      return Number.isFinite(number) ? String.fromCodePoint(number) : match;
+    });
+  }
+
+  function attributesOf(token) {
+    const attributes = {};
+    const nameEnd = token.raw.indexOf(token.name) + token.name.length;
+    const body = token.raw.slice(nameEnd, token.raw.length - (token.selfClosing ? 2 : 1));
+    const pattern = /([A-Za-z_][\w.:-]*)\s*=\s*(["'])([\s\S]*?)\2/g;
+    let match;
+    while ((match = pattern.exec(body))) attributes[match[1]] = decodeEntities(match[3]);
+    return attributes;
+  }
+
+  function parseTextValue(value, embeddedJson) {
+    const text = decodeEntities(value.trim());
+    if (embeddedJson && text) {
+      const embedded = parseEmbeddedJson(text);
+      if (embedded.parsed) return embedded.value;
+    }
+    return text;
+  }
+
+  function nodeValue(node) {
+    const attributes = node.attributes;
+    const attributeNames = Object.keys(attributes);
+    const groupedChildren = {};
+    node.children.forEach(child => {
+      const value = nodeValue(child);
+      if (!(child.name in groupedChildren)) groupedChildren[child.name] = value;
+      else if (Array.isArray(groupedChildren[child.name])) groupedChildren[child.name].push(value);
+      else groupedChildren[child.name] = [groupedChildren[child.name], value];
+    });
+    const childNames = Object.keys(groupedChildren);
+    const text = node.texts.map(item => item.raw).join('').trim();
+    const embeddedJson = node.texts.some(item => item.embeddedJson);
+    if (!attributeNames.length && !childNames.length) return parseTextValue(text, embeddedJson);
+    const value = {};
+    if (attributeNames.length) value['@attributes'] = attributes;
+    childNames.forEach(name => { value[name] = groupedChildren[name]; });
+    if (text) value['#text'] = parseTextValue(text, embeddedJson);
+    return value;
+  }
+
+  function toObject(source) {
+    const text = normalizeInput(source);
+    const result = analyze(text);
+    if (!result.valid) {
+      const error = new Error(result.message);
+      error.problem = result;
+      throw error;
+    }
+    const tokens = tokenize(text);
+    const documentNode = { children: [] };
+    const stack = [documentNode];
+    for (const token of tokens) {
+      if (token.type === 'text') {
+        if (token.raw.trim() && stack.length > 1) stack.at(-1).texts.push(token);
+        continue;
+      }
+      if (token.type === 'cdata' && stack.length > 1) {
+        stack.at(-1).texts.push({ raw: token.raw.slice(9, -3), embeddedJson: false });
+        continue;
+      }
+      if (token.type !== 'tag') continue;
+      if (token.closing) {
+        stack.pop();
+        continue;
+      }
+      const node = { name: token.name, attributes: attributesOf(token), children: [], texts: [] };
+      stack.at(-1).children.push(node);
+      if (!token.selfClosing) stack.push(node);
+    }
+    const root = documentNode.children[0];
+    return { [root.name]: nodeValue(root) };
+  }
+
+  function toJson(text, indentSize = 4) {
+    return JSON.stringify(toObject(text), null, indentSize);
+  }
+
   function foldRanges(text) {
+    text = normalizeInput(text);
     const ranges = [];
     const stack = [];
     const tokens = tokenize(text);
@@ -288,7 +453,7 @@
     return ranges.sort((first, second) => first.startLine - second.startLine || second.endLine - first.endLine);
   }
 
-  const workerSource = `const NAME_PATTERN = /^[A-Za-z_][\\w.:-]*/;\n${xmlLocation.toString()}\n${problem.toString()}\n${findMarkupEnd.toString()}\n${tokenize.toString()}\n${validateTag.toString()}\n${analyze.toString()}\n${format.toString()}\nself.onmessage = event => { try { self.postMessage({ text: format(event.data.text, event.data.indentSize) }); } catch (error) { self.postMessage({ error: error.message, problem: error.problem }); } };`;
+  const workerSource = `const NAME_PATTERN = /^[A-Za-z_][\\w.:-]*/;\n${normalizeInput.toString()}\n${parseEmbeddedJson.toString()}\n${xmlLocation.toString()}\n${problem.toString()}\n${findMarkupEnd.toString()}\n${tokenize.toString()}\n${validateTag.toString()}\n${analyze.toString()}\n${format.toString()}\nself.onmessage = event => { try { self.postMessage({ text: format(event.data.text, event.data.indentSize) }); } catch (error) { self.postMessage({ error: error.message, problem: error.problem }); } };`;
 
-  global.JsonBoardXml = Object.freeze({ analyze, format, foldRanges, workerSource });
+  global.JsonBoardXml = Object.freeze({ analyze, format, foldRanges, toObject, toJson, workerSource });
 })(globalThis);

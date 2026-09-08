@@ -76,7 +76,7 @@ input { font: inherit; }
 
 .icon-button:hover { color: var(--accent-dark); background: #effbf7; }
 .icon-button:active { transform: translateY(1px); }
-.icon-button:focus-visible, .compare-mode-button:focus-visible, .code-mode-button:focus-visible, .xml-mode-button:focus-visible, .format-json-button:focus-visible { outline: 2px solid rgba(17, 201, 147, .45); outline-offset: 2px; }
+.icon-button:focus-visible, .compare-mode-button:focus-visible, .code-mode-button:focus-visible, .xml-mode-button:focus-visible, .xml-to-json-button:focus-visible, .format-json-button:focus-visible { outline: 2px solid rgba(17, 201, 147, .45); outline-offset: 2px; }
 .icon-button.active { color: var(--accent-dark); background: #eafaf4; }
 .icon-button:disabled { opacity: .35; cursor: not-allowed; }
 .icon-button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -120,6 +120,7 @@ input { font: inherit; }
 .compare-mode-button,
 .code-mode-button,
 .xml-mode-button,
+.xml-to-json-button,
 .format-json-button {
   display: inline-flex;
   align-items: center;
@@ -138,8 +139,8 @@ input { font: inherit; }
   transition: color .15s ease, background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
 
-.compare-mode-button svg, .code-mode-button svg, .xml-mode-button svg, .format-json-button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.compare-mode-button:hover, .code-mode-button:hover, .xml-mode-button:hover, .format-json-button:hover { color: var(--accent-dark); background: #effbf7; border-color: #c9eee1; }
+.compare-mode-button svg, .code-mode-button svg, .xml-mode-button svg, .xml-to-json-button svg, .format-json-button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.compare-mode-button:hover, .code-mode-button:hover, .xml-mode-button:hover, .xml-to-json-button:hover, .format-json-button:hover { color: var(--accent-dark); background: #effbf7; border-color: #c9eee1; }
 .compare-mode-button.active, .code-mode-button.active, .xml-mode-button.active, .format-json-button.active { color: #fff; background: var(--accent-dark); border-color: var(--accent-dark); box-shadow: 0 3px 10px rgba(8, 185, 133, .2); }
 .language-badge { flex: 0 0 auto; margin-left: auto; padding: 5px 9px; color: #087d5e; background: #eafaf4; border: 1px solid #ccefe3; border-radius: 12px; font: 600 10px/1 var(--font-code); white-space: nowrap; }
 .format-json-button { margin-left: 8px; }
@@ -447,8 +448,8 @@ body.code-mode .fold-controls { display: none; }
 @media (max-width: 1050px) {
   .toolbar { padding-right: 10px; padding-left: 12px; }
   .icon-button { width: 34px; }
-  .compare-mode-button, .code-mode-button, .xml-mode-button, .format-json-button { width: 34px; padding: 0; justify-content: center; }
-  .compare-mode-button span, .code-mode-button span, .xml-mode-button span, .format-json-button span, #diffMessage { display: none; }
+  .compare-mode-button, .code-mode-button, .xml-mode-button, .xml-to-json-button, .format-json-button { width: 34px; padding: 0; justify-content: center; }
+  .compare-mode-button span, .code-mode-button span, .xml-mode-button span, .xml-to-json-button span, .format-json-button span, #diffMessage { display: none; }
   .language-badge { display: none; }
   .compare-summary { gap: 10px; padding: 0 10px; }
   .diff-stats { gap: 8px; }

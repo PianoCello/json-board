@@ -44,6 +44,7 @@
   const replaceButton = document.querySelector('[data-action="replace"]');
   const codeModeButton = document.querySelector('[data-action="code-mode"]');
   const xmlModeButton = document.querySelector('[data-action="xml-mode"]');
+  const xmlToJsonButton = document.querySelector('[data-action="xml-to-json"]');
   const languageBadge = document.querySelector('#languageBadge');
   const lineNumbersButton = document.querySelector('[data-action="line-numbers"]');
   const hideNullButton = document.querySelector('[data-action="hide-null"]');
@@ -1160,6 +1161,34 @@
     }
   }
 
+  function convertXmlToJson() {
+    if (!xmlMode || compareMode) return false;
+    expandAllFolds();
+    const source = currentPrimaryText();
+    if (!source.trim()) return false;
+    try {
+      const json = window.JsonBoardXml.toJson(source, 4);
+      setXmlMode(false, { persist: false, announceResult: false });
+      input.value = json;
+      canonicalText = json;
+      input.scrollTop = 0;
+      input.scrollLeft = 0;
+      editorCache.delete(input);
+      updateEditor(input, primaryHighlight, lineNumbers);
+      syncVisualScroll(input, primaryHighlight, lineNumbers);
+      scheduleFoldScan();
+      scheduleDiagnostics();
+      scheduleSave();
+      announce('XML 已解析为 JSON');
+      return true;
+    } catch (error) {
+      const diagnostic = error.problem || window.JsonBoardXml.analyze(source);
+      renderDiagnostic(diagnostic, { force: true });
+      announce('XML 格式有误，无法解析为 JSON');
+      return false;
+    }
+  }
+
   function autoFormatCompactJson() {
     if (compareMode || codeMode || xmlMode) return;
     const raw = input.value.trim();
@@ -1349,6 +1378,7 @@
     hideNullButton.disabled = jsonToolsDisabled;
     formatButton.disabled = compareMode;
     xmlModeButton.disabled = compareMode;
+    xmlToJsonButton.hidden = !xmlMode || compareMode;
     collapseAllButton.disabled = structuredToolsDisabled;
     expandAllButton.disabled = structuredToolsDisabled;
     const jsonModeActive = !compareMode && !codeMode && !xmlMode;
@@ -1539,6 +1569,7 @@
       if (xmlMode) void formatXml();
       else setXmlMode(true);
     }
+    if (button.dataset.action === 'xml-to-json') convertXmlToJson();
     if (button.dataset.action === 'format') {
       if (codeMode) setCodeMode(false);
       else if (xmlMode) setXmlMode(false);
