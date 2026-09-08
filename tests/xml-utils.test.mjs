@@ -41,6 +41,11 @@ const logStyleJson = JSON.parse(xml.toJson(logStyleSoap));
 assert.equal(logStyleJson['soapenv:Envelope']['soapenv:Body']['com:in0'].requestName, String.raw`珠光\面粉\25kg`);
 assert.equal(logStyleJson['soapenv:Envelope']['soapenv:Body']['com:in0'].url, 'https://example.test/file?a=1&b=2');
 
+const doubleEscapedSoap = String.raw`"\<soap-env:Envelope xmlns:soap-env=\\"http://schemas.xmlsoap.org/soap/envelope/\\" xmlns:urn=\\"urn:sap-com:document:sap:rfc:functions\\">\n  \<soap-env:Body>\n    \<urn:ZMMFM\_IPASS\_006>\n      \<IS\_HEADER>\n        \<VERKF>PO20260908000001\</VERKF>\n      \</IS\_HEADER>\n    \</urn:ZMMFM\_IPASS\_006>\n  \</soap-env:Body>\n\</soap-env:Envelope>"`;
+assert.equal(xml.analyze(doubleEscapedSoap).valid, true);
+assert.match(xml.format(doubleEscapedSoap), /<urn:ZMMFM_IPASS_006>/);
+assert.match(xml.format(doubleEscapedSoap), /xmlns:soap-env="http:\/\/schemas\.xmlsoap\.org\/soap\/envelope\/"/);
+
 const repeatedXml = '<root enabled="true"><item id="1">甲</item><item id="2">乙</item></root>';
 const repeatedAsJson = JSON.parse(xml.toJson(repeatedXml));
 assert.equal(repeatedAsJson.root['@attributes'].enabled, 'true');

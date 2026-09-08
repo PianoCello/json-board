@@ -57,6 +57,7 @@
   let compareMode = false;
   let codeMode = false;
   let xmlMode = false;
+  let xmlConvertible = false;
   let hideNullValues = false;
   let canonicalText = '';
   let diffChanges = [];
@@ -932,10 +933,18 @@
     }
     const text = currentPrimaryText();
     if (!text.trim()) {
+      if (xmlMode) {
+        xmlConvertible = false;
+        updateModeControls();
+      }
       renderDiagnostic(null);
       return { valid: true, empty: true };
     }
     const result = xmlMode ? window.JsonBoardXml.analyze(text) : window.JsonDiagnostics.analyze(text);
+    if (xmlMode) {
+      xmlConvertible = result.valid === true && !result.empty;
+      updateModeControls();
+    }
     renderDiagnostic(result, { force });
     return result;
   }
@@ -1145,6 +1154,8 @@
       if (currentPrimaryText() !== source) return false;
       input.value = formatted;
       canonicalText = formatted;
+      xmlConvertible = true;
+      updateModeControls();
       editorCache.delete(input);
       updateEditor(input, primaryHighlight, lineNumbers);
       scheduleFoldScan();
@@ -1153,6 +1164,8 @@
       if (announceResult) announce('XML 格式化完成');
       return true;
     } catch (error) {
+      xmlConvertible = false;
+      updateModeControls();
       const diagnostic = error.problem || window.JsonBoardXml.analyze(source);
       renderDiagnostic(diagnostic, { force: true });
       if (announceResult) announce('XML 格式有误');
@@ -1161,7 +1174,7 @@
   }
 
   function convertXmlToJson() {
-    if (!xmlMode || compareMode) return false;
+    if (!xmlMode || !xmlConvertible || compareMode) return false;
     expandAllFolds();
     const source = currentPrimaryText();
     if (!source.trim()) return false;
@@ -1382,9 +1395,10 @@
     const jsonModeActive = !compareMode && !codeMode && !xmlMode;
     formatButton.classList.toggle('active', jsonModeActive);
     formatButton.setAttribute('aria-pressed', String(jsonModeActive));
-    formatButton.querySelector('span').textContent = xmlMode ? '解析为 JSON' : 'Json 模式';
-    formatButton.setAttribute('aria-label', xmlMode ? '将 XML 解析为 JSON' : codeMode ? '切换到 Json 模式' : '格式化 JSON');
-    formatButton.title = xmlMode ? '解析当前 XML 并切换到 Json 模式' : codeMode ? '切换到 Json 模式' : '格式化 JSON（⌘/Ctrl + Enter）';
+    const canParseXml = xmlMode && xmlConvertible;
+    formatButton.querySelector('span').textContent = canParseXml ? '解析为 JSON' : 'Json 模式';
+    formatButton.setAttribute('aria-label', canParseXml ? '将 XML 解析为 JSON' : codeMode || xmlMode ? '切换到 Json 模式' : '格式化 JSON');
+    formatButton.title = canParseXml ? '解析当前 XML 并切换到 Json 模式' : codeMode || xmlMode ? '切换到 Json 模式' : '格式化 JSON（⌘/Ctrl + Enter）';
     xmlModeButton.classList.toggle('active', xmlMode);
     xmlModeButton.setAttribute('aria-pressed', String(xmlMode));
     xmlModeButton.setAttribute('aria-label', xmlMode ? '格式化 XML' : '切换到 XML 模式');
@@ -1434,6 +1448,7 @@
     if (enabled) leaveHiddenNullMode();
     expandAllFolds();
     xmlMode = enabled;
+    xmlConvertible = false;
     if (enabled) codeMode = false;
     document.body.classList.toggle('xml-mode', enabled);
     document.body.classList.toggle('code-mode', codeMode);
@@ -1503,6 +1518,10 @@
     if (editor === input) dismissedDiagnosticText = '';
     updateEditor(editor, highlight, numbers);
     if (editor === input) {
+      if (xmlMode && xmlConvertible) {
+        xmlConvertible = false;
+        updateModeControls();
+      }
       if (!hideNullValues) canonicalText = currentPrimaryText();
       clearTimeout(renderTimer);
       renderTimer = setTimeout(() => {
@@ -1570,7 +1589,8 @@
     }
     if (button.dataset.action === 'format') {
       if (codeMode) setCodeMode(false);
-      else if (xmlMode) convertXmlToJson();
+      else if (xmlMode && xmlConvertible) convertXmlToJson();
+      else if (xmlMode) setXmlMode(false);
       else void formatJson();
     }
     if (button.dataset.action === 'compare') setCompareMode(!compareMode);

@@ -3,28 +3,53 @@
 
   const NAME_PATTERN = /^[A-Za-z_][\w.:-]*/;
 
+  function normalizeMarkupEscapes(value) {
+    const text = value.replace(/\\+([<>])/g, '$1');
+    return text.replace(/<[^>]*>/g, markup => {
+      let result = '';
+      let quote = '';
+      for (let index = 0; index < markup.length; index += 1) {
+        const character = markup[index];
+        if (character === '\\') {
+          let next = index;
+          while (markup[next] === '\\') next += 1;
+          const escaped = markup[next];
+          if (escaped === '"' || escaped === "'" || (!quote && /[\w.:-]/.test(escaped || ''))) {
+            result += escaped;
+            if (escaped === '"' || escaped === "'") quote = quote === escaped ? '' : escaped;
+            index = next;
+            continue;
+          }
+        }
+        result += character;
+        if (character === '"' || character === "'") quote = quote === character ? '' : character;
+      }
+      return result;
+    });
+  }
+
   function normalizeInput(value) {
     const original = String(value ?? '');
     const trimmed = original.trim();
     if (!trimmed) return '';
-    if (trimmed[0] !== '"' || trimmed.at(-1) !== '"') return trimmed;
+    if (trimmed[0] !== '"' || trimmed.at(-1) !== '"') return normalizeMarkupEscapes(trimmed);
     try {
       const decoded = JSON.parse(trimmed);
-      if (typeof decoded === 'string') return decoded.trim();
+      if (typeof decoded === 'string') return normalizeMarkupEscapes(decoded.trim());
     } catch (_) {
       // Some Java/log serializers emit non-standard \< and \> escapes.
     }
     const jsonCompatible = trimmed.replace(/\\+([<>])/g, '$1');
     try {
       const decoded = JSON.parse(jsonCompatible);
-      if (typeof decoded === 'string') return decoded.trim();
+      if (typeof decoded === 'string') return normalizeMarkupEscapes(decoded.trim());
     } catch (_) {
-      return trimmed.slice(1, -1)
+      return normalizeMarkupEscapes(trimmed.slice(1, -1)
         .replace(/\\+([<>])/g, '$1')
         .replace(/\\"/g, '"')
         .replace(/\\r\\n|\\n|\\r/g, '\n')
         .replace(/\\t/g, '\t')
-        .trim();
+        .trim());
     }
     return trimmed;
   }
@@ -453,7 +478,7 @@
     return ranges.sort((first, second) => first.startLine - second.startLine || second.endLine - first.endLine);
   }
 
-  const workerSource = `const NAME_PATTERN = /^[A-Za-z_][\\w.:-]*/;\n${normalizeInput.toString()}\n${parseEmbeddedJson.toString()}\n${xmlLocation.toString()}\n${problem.toString()}\n${findMarkupEnd.toString()}\n${tokenize.toString()}\n${validateTag.toString()}\n${analyze.toString()}\n${format.toString()}\nself.onmessage = event => { try { self.postMessage({ text: format(event.data.text, event.data.indentSize) }); } catch (error) { self.postMessage({ error: error.message, problem: error.problem }); } };`;
+  const workerSource = `const NAME_PATTERN = /^[A-Za-z_][\\w.:-]*/;\n${normalizeMarkupEscapes.toString()}\n${normalizeInput.toString()}\n${parseEmbeddedJson.toString()}\n${xmlLocation.toString()}\n${problem.toString()}\n${findMarkupEnd.toString()}\n${tokenize.toString()}\n${validateTag.toString()}\n${analyze.toString()}\n${format.toString()}\nself.onmessage = event => { try { self.postMessage({ text: format(event.data.text, event.data.indentSize) }); } catch (error) { self.postMessage({ error: error.message, problem: error.problem }); } };`;
 
   global.JsonBoardXml = Object.freeze({ analyze, format, foldRanges, toObject, toJson, workerSource });
 })(globalThis);
