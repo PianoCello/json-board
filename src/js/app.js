@@ -45,7 +45,6 @@
   const codeModeButton = document.querySelector('[data-action="code-mode"]');
   const xmlModeButton = document.querySelector('[data-action="xml-mode"]');
   const languageBadge = document.querySelector('#languageBadge');
-  const lineNumbersButton = document.querySelector('[data-action="line-numbers"]');
   const hideNullButton = document.querySelector('[data-action="hide-null"]');
   const compareButton = document.querySelector('[data-action="compare"]');
   const formatButton = document.querySelector('[data-action="format"]');
@@ -83,6 +82,10 @@
   let activeEditor = input;
   let currentSearchIndex = -1;
   let lineClipboardText = '';
+  const HISTORY_LIMIT = 60;
+  const createHistory = () => ({ current: null, undo: [], redo: [], lastTypingAt: 0 });
+  const modeHistories = { json: createHistory(), xml: createHistory(), code: createHistory() };
+  const compareHistory = createHistory();
   const foldedStarts = new Set();
   const editorCache = new WeakMap();
   const bracketCache = new WeakMap();
@@ -104,6 +107,102 @@
     input.scrollTop = 0;
     input.scrollLeft = 0;
     if (mode === 'json') canonicalText = modeDrafts.json;
+    alignEditorHistory(input);
+  }
+
+  function editorHistory(editor) {
+    return editor === compareInput ? compareHistory : modeHistories[currentModeKey()];
+  }
+
+  function editorSnapshot(editor) {
+    return {
+      value: editor.value,
+      selectionStart: editor.selectionStart,
+      selectionEnd: editor.selectionEnd,
+      scrollTop: editor.scrollTop,
+      scrollLeft: editor.scrollLeft
+    };
+  }
+
+  function alignEditorHistory(editor, { clear = false } = {}) {
+    const history = editorHistory(editor);
+    if (clear) {
+      history.undo = [];
+      history.redo = [];
+    }
+    history.current = editorSnapshot(editor);
+    history.lastTypingAt = 0;
+  }
+
+  function pushHistory(stack, snapshot) {
+    stack.push(snapshot);
+    if (stack.length > HISTORY_LIMIT) stack.splice(0, stack.length - HISTORY_LIMIT);
+  }
+
+  function recordEditorHistory(editor, { merge = false, typing = false } = {}) {
+    const history = editorHistory(editor);
+    const next = editorSnapshot(editor);
+    if (!history.current) {
+      history.current = next;
+      return;
+    }
+    if (history.current.value === next.value) {
+      history.current = next;
+      return;
+    }
+    const now = Date.now();
+    const sameTypingBurst = typing && history.lastTypingAt && now - history.lastTypingAt < 700;
+    if (!merge && !sameTypingBurst) pushHistory(history.undo, history.current);
+    history.current = next;
+    history.redo = [];
+    history.lastTypingAt = typing ? now : 0;
+  }
+
+  function restoreEditorHistory(editor, direction) {
+    if (editor === input) expandAllFolds({ preserveSelection: true });
+    const history = editorHistory(editor);
+    const live = editorSnapshot(editor);
+    if (!history.current || history.current.value !== live.value) recordEditorHistory(editor);
+    const source = direction === 'undo' ? history.undo : history.redo;
+    const destination = direction === 'undo' ? history.redo : history.undo;
+    const target = source.pop();
+    if (!target) {
+      announce(direction === 'undo' ? '没有可撤销的操作' : '没有可重做的操作');
+      return;
+    }
+    pushHistory(destination, history.current);
+    history.current = target;
+    history.lastTypingAt = 0;
+    editor.value = target.value;
+    editor.setSelectionRange(
+      Math.min(target.selectionStart, target.value.length),
+      Math.min(target.selectionEnd, target.value.length)
+    );
+    editor.scrollTop = target.scrollTop;
+    editor.scrollLeft = target.scrollLeft;
+    editorCache.delete(editor);
+    if (editor === input) {
+      resetFoldState();
+      const mode = currentModeKey();
+      modeDrafts[mode] = editor.value;
+      if (mode === 'json' && !hideNullValues) canonicalText = editor.value;
+      if (mode === 'xml' && xmlConvertible) {
+        xmlConvertible = false;
+        updateModeControls();
+      }
+      dismissedDiagnosticText = '';
+      updateEditor(input, primaryHighlight, lineNumbers);
+      if (compareMode) updateDiff();
+      else {
+        scheduleFoldScan();
+        if (!codeMode) scheduleDiagnostics();
+      }
+    } else {
+      updateEditor(compareInput, compareHighlight, compareLineNumbers);
+      if (compareMode) updateDiff();
+    }
+    scheduleSave();
+    announce(direction === 'undo' ? '已撤销' : '已重做');
   }
   const languageCache = new WeakMap();
   const LARGE_TEXT_LENGTH = 150000;
@@ -260,7 +359,8 @@
         ? renderedLines.map(line => highlightCode(line.text, line.offset)).join('\n')
         : highlightCode(renderedText);
     if (codeMode) updateLanguageBadge(editor, language);
-    numbers.textContent = Array.from({ length: end - start }, (_, index) => start + index + 1).join('\n');
+    const numberMap = editor === input && foldedStarts.size ? foldDisplayMap : [];
+    numbers.textContent = window.JsonBoardEditor.lineNumbersForRange(start, end, numberMap).join('\n');
 
     if (data.large) {
       const lineHeight = Number.parseFloat(getComputedStyle(editor).lineHeight) || 22.4;
@@ -275,7 +375,7 @@
       numbers.style.removeProperty('padding-bottom');
     }
     numbers.scrollTop = editor.scrollTop;
-    if (editor === input && !compareMode && !codeMode) renderFoldControls();
+    if (editor === input && !compareMode) renderFoldControls();
   }
 
   function syncVisualScroll(editor, highlight, numbers) {
@@ -283,7 +383,7 @@
     else {
       highlight.style.transform = `translate(${-editor.scrollLeft}px, ${-editor.scrollTop}px)`;
       numbers.scrollTop = editor.scrollTop;
-      if (editor === input && !compareMode && !codeMode) renderFoldControls();
+      if (editor === input && !compareMode) renderFoldControls();
     }
   }
 
@@ -404,7 +504,7 @@
 
   function scheduleFoldScan() {
     clearTimeout(foldTimer);
-    if (compareMode || codeMode) { foldControls.replaceChildren(); return; }
+    if (compareMode) { foldControls.replaceChildren(); return; }
     const text = currentPrimaryText();
     if (!text.trim()) {
       foldRanges = [];
@@ -426,7 +526,7 @@
 
   function renderFoldControls() {
     foldControls.replaceChildren();
-    if (compareMode || codeMode || !foldRanges.length) return;
+    if (compareMode || !foldRanges.length) return;
     const lineHeight = Number.parseFloat(getComputedStyle(input).lineHeight) || 22.4;
     const topPadding = Number.parseFloat(getComputedStyle(input).paddingTop) || 22;
     const characterWidth = Number.parseFloat(getComputedStyle(input).fontSize) * .602;
@@ -462,7 +562,9 @@
         copyButton.type = 'button';
         copyButton.className = 'fragment-copy-button';
         copyButton.innerHTML = '<svg viewBox="0 0 18 18" aria-hidden="true"><rect x="6" y="6" width="8" height="9" rx="1"/><path d="M12 6V3H3v9h3"/></svg>';
-        const fragmentType = row.range.opening === '[' ? '数组' : row.range.type === 'xml-element' ? 'XML 元素' : '对象';
+        const fragmentType = codeMode
+          ? '代码块'
+          : row.range.opening === '[' ? '数组' : row.range.type === 'xml-element' ? 'XML 元素' : '对象';
         const countDescription = row.range.opening === '['
           ? `（${row.range.itemCount} 项）`
           : row.range.type === 'xml-element' ? `（${row.range.itemCount} 个子元素）` : '';
@@ -904,7 +1006,6 @@
         compareMode: state.compareMode,
         codeMode: state.codeMode,
         xmlMode: state.xmlMode,
-        lineNumbers: state.lineNumbers,
         hideNullValues: state.hideNullValues,
         split: state.split,
         foldedLines: state.foldedLines
@@ -927,10 +1028,9 @@
       compareMode,
       codeMode,
       xmlMode,
-      lineNumbers: document.body.classList.contains('show-lines'),
       hideNullValues,
       split: Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--split')) || 50,
-      foldedLines: compareMode || codeMode ? [] : [...foldedStarts]
+      foldedLines: compareMode ? [] : [...foldedStarts]
     };
     try {
       const serialized = JSON.stringify(state);
@@ -1157,6 +1257,7 @@
         const formatted = await formatInWorker(source);
         if (currentPrimaryText() !== source) return false;
         input.value = formatted;
+        recordEditorHistory(input, { merge: !announceResult });
         editorCache.delete(input);
         if (hideNullValues) syncCanonicalFromFiltered();
         else canonicalText = input.value;
@@ -1174,6 +1275,7 @@
     const parsed = validateJson({ quiet: !announceResult });
     if (parsed === null && currentPrimaryText().trim() !== 'null') return false;
     input.value = JSON.stringify(parsed, null, 4);
+    recordEditorHistory(input, { merge: !announceResult });
     if (hideNullValues) syncCanonicalFromFiltered();
     else canonicalText = input.value;
     updateEditor(input, primaryHighlight, lineNumbers);
@@ -1196,6 +1298,7 @@
         : window.JsonBoardXml.format(source, 4);
       if (currentPrimaryText() !== source) return false;
       input.value = formatted;
+      recordEditorHistory(input, { merge: !announceResult });
       canonicalText = formatted;
       xmlConvertible = true;
       updateModeControls();
@@ -1470,7 +1573,7 @@
 
   function updateModeControls() {
     const jsonToolsDisabled = compareMode || codeMode || xmlMode;
-    const structuredToolsDisabled = compareMode || codeMode;
+    const structuredToolsDisabled = compareMode;
     hideNullButton.disabled = jsonToolsDisabled;
     formatButton.disabled = compareMode;
     xmlModeButton.disabled = compareMode;
@@ -1522,10 +1625,8 @@
     foldControls.replaceChildren();
     updateEditor(input, primaryHighlight, lineNumbers);
     updateEditor(compareInput, compareHighlight, compareLineNumbers);
-    if (!enabled && !compareMode) {
-      scheduleFoldScan();
-      scheduleDiagnostics();
-    }
+    if (!compareMode) scheduleFoldScan();
+    if (!enabled && !compareMode) scheduleDiagnostics();
     if (persist) scheduleSave();
     if (announceResult) announce(enabled ? '已开启代码模式，正在自动识别语言' : '已返回 JSON 模式');
     return true;
@@ -1584,27 +1685,18 @@
     } else {
       clearDiff();
       updateEditor(input, primaryHighlight, lineNumbers);
-      if (!codeMode) {
-        autoFormatStructuredText();
-        scheduleFoldScan();
-      }
+      if (!codeMode) autoFormatStructuredText();
+      scheduleFoldScan();
     }
     if (persist) scheduleSave();
   }
 
-  function toggleLineNumbers(button) {
-    const visible = document.body.classList.toggle('show-lines');
-    button.classList.toggle('active', visible);
-    button.setAttribute('aria-pressed', String(visible));
-    button.setAttribute('aria-label', visible ? '隐藏行号' : '显示行号');
-    button.title = visible ? '隐藏行号' : '显示行号';
-    updateEditor(input, primaryHighlight, lineNumbers);
-    updateEditor(compareInput, compareHighlight, compareLineNumbers);
-    scheduleSave();
-  }
-
-  function handleEditorInput(editor, highlight, numbers) {
+  function handleEditorInput(editor, highlight, numbers, event) {
     if (!stateRestored) userEditedBeforeRestore = true;
+    const inputType = event?.inputType || '';
+    recordEditorHistory(editor, {
+      typing: inputType === 'insertText' || inputType.startsWith('deleteContent')
+    });
     if (editor === input) dismissedDiagnosticText = '';
     updateEditor(editor, highlight, numbers);
     if (editor === input) {
@@ -1618,8 +1710,8 @@
       clearTimeout(renderTimer);
       renderTimer = setTimeout(() => {
         if (compareMode) updateDiff();
-        else if (!codeMode) {
-          autoFormatStructuredText();
+        else {
+          if (!codeMode) autoFormatStructuredText();
           scheduleFoldScan();
         }
       }, 180);
@@ -1646,6 +1738,14 @@
 
   function enableTabInsertion(editor) {
     editor.addEventListener('keydown', event => {
+      const modifier = event.ctrlKey || event.metaKey;
+      const key = event.key.toLowerCase();
+      if (modifier && !event.altKey && (key === 'z' || (event.ctrlKey && key === 'y'))) {
+        event.preventDefault();
+        const redo = (key === 'z' && event.shiftKey) || (event.ctrlKey && key === 'y');
+        restoreEditorHistory(editor, redo ? 'redo' : 'undo');
+        return;
+      }
       if (event.key === 'Tab') {
         event.preventDefault();
         editor.setRangeText('  ', editor.selectionStart, editor.selectionEnd, 'end');
@@ -1662,7 +1762,6 @@
   document.querySelector('.toolbar').addEventListener('click', event => {
     const button = event.target.closest('[data-action]');
     if (!button) return;
-    if (button.dataset.action === 'line-numbers') toggleLineNumbers(button);
     if (button.dataset.action === 'hide-null') toggleNullValues(button);
     if (button.dataset.action === 'copy') copyText();
     if (button.dataset.action === 'collapse-all') collapseAllFolds();
@@ -1717,8 +1816,8 @@
     if (!foldedStarts.size) return;
     if (event.key.length === 1 || ['Backspace', 'Delete', 'Enter', 'Tab'].includes(event.key)) expandBeforePrimaryEdit();
   }, { capture: true });
-  input.addEventListener('input', () => handleEditorInput(input, primaryHighlight, lineNumbers));
-  compareInput.addEventListener('input', () => handleEditorInput(compareInput, compareHighlight, compareLineNumbers));
+  input.addEventListener('input', event => handleEditorInput(input, primaryHighlight, lineNumbers, event));
+  compareInput.addEventListener('input', event => handleEditorInput(compareInput, compareHighlight, compareLineNumbers, event));
   enableLineClipboard(input);
   enableLineClipboard(compareInput);
   input.addEventListener('focus', () => {
@@ -1799,6 +1898,8 @@
     scheduleSave();
   });
 
+  alignEditorHistory(input, { clear: true });
+  alignEditorHistory(compareInput, { clear: true });
   const saved = await loadState();
   if (!userEditedBeforeRestore) {
     const restoredMode = saved?.xmlMode ? 'xml' : saved?.codeMode ? 'code' : 'json';
@@ -1827,13 +1928,6 @@
   if (Number.isFinite(saved?.split)) {
     document.documentElement.style.setProperty('--split', `${Math.min(72, Math.max(28, saved.split))}%`);
   }
-  if (saved?.lineNumbers) {
-    document.body.classList.add('show-lines');
-    lineNumbersButton.classList.add('active');
-    lineNumbersButton.setAttribute('aria-pressed', 'true');
-    lineNumbersButton.setAttribute('aria-label', '隐藏行号');
-    lineNumbersButton.title = '隐藏行号';
-  }
   hideNullButton.classList.toggle('active', hideNullValues);
   hideNullButton.setAttribute('aria-pressed', String(hideNullValues));
   hideNullButton.setAttribute('aria-label', hideNullValues ? '显示值为 null 的键值' : '隐藏值为 null 的键值');
@@ -1841,15 +1935,19 @@
   if (saved?.xmlMode) setXmlMode(true, { persist: false, announceResult: false, capture: false });
   else if (saved?.codeMode) setCodeMode(true, { persist: false, announceResult: false, capture: false });
   else updateModeControls();
+  if (!userEditedBeforeRestore) {
+    alignEditorHistory(input, { clear: true });
+    alignEditorHistory(compareInput, { clear: true });
+  }
   updateEditor(input, primaryHighlight, lineNumbers);
   updateEditor(compareInput, compareHighlight, compareLineNumbers);
   // 每次打开默认保持单面板；右侧文本仍会保存，用户点击“文本对比”即可继续。
-  if (!codeMode && Array.isArray(saved?.foldedLines) && saved.foldedLines.length) {
+  if (Array.isArray(saved?.foldedLines) && saved.foldedLines.length) {
     foldSourceText = input.value;
     foldRanges = findFoldRanges(foldSourceText);
     saved.foldedLines.forEach(line => foldedStarts.add(Number(line)));
     renderFoldedView({ preserveScroll: false });
-  } else if (!codeMode) scheduleFoldScan();
+  } else scheduleFoldScan();
   if (!codeMode) scheduleDiagnostics();
   stateRestored = true;
   if (userEditedBeforeRestore) saveState();

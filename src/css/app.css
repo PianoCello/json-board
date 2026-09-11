@@ -225,7 +225,7 @@ input { font: inherit; }
 }
 
 .line-numbers {
-  display: none;
+  display: block;
   flex: 0 0 50px;
   padding: var(--editor-top) 11px var(--editor-bottom) 0;
   overflow: hidden;
@@ -238,7 +238,6 @@ input { font: inherit; }
   font: 12px/var(--line-height) var(--font-code);
 }
 
-body.show-lines .line-numbers { display: block; }
 .compare-pane .line-numbers { flex-basis: 44px; padding-right: 9px; }
 
 .code-stage { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
@@ -346,7 +345,6 @@ body.show-lines .line-numbers { display: block; }
   transform-origin: top left;
 }
 
-body.code-mode .fold-controls { display: none; }
 .syntax-layer .hljs-comment, .syntax-layer .hljs-quote { color: #8d998f; font-style: italic; }
 .syntax-layer .hljs-keyword, .syntax-layer .hljs-selector-tag, .syntax-layer .hljs-literal, .syntax-layer .hljs-section, .syntax-layer .hljs-link { color: #a12993; font-weight: 600; }
 .syntax-layer .hljs-string, .syntax-layer .hljs-regexp, .syntax-layer .hljs-addition, .syntax-layer .hljs-attribute, .syntax-layer .hljs-meta .hljs-string { color: #20ad4a; }

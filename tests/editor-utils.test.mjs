@@ -4,7 +4,12 @@ import vm from 'node:vm';
 
 const context = { globalThis: {} };
 vm.runInNewContext(readFileSync(new URL('../src/js/editor-utils.js', import.meta.url), 'utf8'), context);
-const { buildBracketPairs, lineClipboardRange, shouldAutoFormatPaste } = context.globalThis.JsonBoardEditor;
+const {
+  buildBracketPairs,
+  lineClipboardRange,
+  lineNumbersForRange,
+  shouldAutoFormatPaste
+} = context.globalThis.JsonBoardEditor;
 
 assert.equal(JSON.stringify(buildBracketPairs('{"ignored":"}","nested":[1]}')), JSON.stringify([[24, 26], [0, 27]]));
 assert.equal(JSON.stringify(buildBracketPairs('{/* } */"value":1}')), JSON.stringify([[0, 17]]));
@@ -45,6 +50,10 @@ assert.deepEqual(
 assert.deepEqual(
   JSON.parse(JSON.stringify(lineClipboardRange('first\nlast', 10))),
   { start: 6, end: 10, deleteStart: 5, deleteEnd: 10, text: 'last\n' }
+);
+assert.deepEqual(
+  JSON.parse(JSON.stringify(lineNumbersForRange(0, 3, [{ fullLine: 0 }, { fullLine: 4 }, { fullLine: 5 }]))),
+  [1, 5, 6]
 );
 
 console.log('editor utilities contract: bracket pairs, paste detection and line clipboard ranges');

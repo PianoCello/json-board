@@ -67,5 +67,17 @@
     };
   }
 
-  global.JsonBoardEditor = Object.freeze({ buildBracketPairs, lineClipboardRange, shouldAutoFormatPaste });
+  function lineNumbersForRange(start, end, displayMap = []) {
+    return Array.from({ length: Math.max(0, end - start) }, (_, index) => {
+      const displayLine = start + index;
+      return (displayMap[displayLine]?.fullLine ?? displayLine) + 1;
+    });
+  }
+
+  global.JsonBoardEditor = Object.freeze({
+    buildBracketPairs,
+    lineClipboardRange,
+    lineNumbersForRange,
+    shouldAutoFormatPaste
+  });
 })(globalThis);

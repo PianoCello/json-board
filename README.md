@@ -32,7 +32,7 @@ JSON Board 不需要安装、不需要构建，也不会把文本传到服务器
 | JSON 工作台 | 粘贴自动格式化、行号、折叠、片段复制、一键展开与隐藏 `null` |
 | XML 工作台 | 粘贴自动格式化、语法高亮、标签折叠、子元素计数、片段复制与中文错误定位 |
 | 中文诊断 | 定位缺逗号、多括号、错误引号、非法转义等常见 JSON 问题 |
-| 代码模式 | 自动识别 JavaScript、TypeScript、Python、Java、SQL、Shell、HTML、CSS、Go、Rust 等语言 |
+| 代码模式 | 自动识别 JavaScript、TypeScript、Python、Java、SQL、Shell、HTML、CSS、Go、Rust 等语言，支持花括号代码块折叠 |
 | 查找替换 | 所有匹配与当前匹配独立高亮，支持上一处、下一处、替换和全部替换 |
 | 文本对比 | 任意文本左右对比，支持差异统计、变更导航和双栏同步滚动 |
 | 大文件优化 | 纵向与横向虚拟渲染，超大文本使用 IndexedDB 与 gzip 本地备份 |
@@ -82,6 +82,9 @@ npm run serve
 | `Ctrl/Command + C` | 无选区时复制光标所在整行；有选区时复制选区 |
 | `Ctrl/Command + X` | 无选区时剪切光标所在整行；有选区时剪切选区 |
 | `Ctrl/Command + V` | 粘贴文本；由看板复制的整行会按行插入 |
+| `Ctrl/Command + Z` | 撤销当前模式中的操作 |
+| `Ctrl/Command + Shift + Z` | 重做当前模式中的操作 |
+| `Ctrl + Y` | Windows/Linux 重做 |
 | `Ctrl/Command + Enter` | 格式化当前 JSON 或 XML |
 | `Ctrl + H` | Windows 打开查找替换 |
 | `Command + Option + F` | macOS 打开查找替换 |
