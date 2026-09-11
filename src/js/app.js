@@ -83,7 +83,7 @@
   let currentSearchIndex = -1;
   let lineClipboardText = '';
   const HISTORY_LIMIT = 60;
-  const createHistory = () => ({ current: null, undo: [], redo: [], lastTypingAt: 0 });
+  const createHistory = () => ({ current: null, undo: [], redo: [], lastTypingAt: 0, lastShortcutAt: 0 });
   const modeHistories = { json: createHistory(), xml: createHistory(), code: createHistory() };
   const compareHistory = createHistory();
   const foldedStarts = new Set();
@@ -159,6 +159,10 @@
   }
 
   function restoreEditorHistory(editor, direction) {
+    clearTimeout(renderTimer);
+    clearTimeout(diffTimer);
+    clearTimeout(foldTimer);
+    clearTimeout(diagnosticTimer);
     if (editor === input) expandAllFolds({ preserveSelection: true });
     const history = editorHistory(editor);
     const live = editorSnapshot(editor);
@@ -1740,9 +1744,13 @@
     editor.addEventListener('keydown', event => {
       const modifier = event.ctrlKey || event.metaKey;
       const key = event.key.toLowerCase();
-      if (modifier && !event.altKey && (key === 'z' || (event.ctrlKey && key === 'y'))) {
+      const isUndoKey = key === 'z' || event.code === 'KeyZ';
+      const isWindowsRedoKey = event.ctrlKey && (key === 'y' || event.code === 'KeyY');
+      if (modifier && !event.altKey && (isUndoKey || isWindowsRedoKey)) {
         event.preventDefault();
-        const redo = (key === 'z' && event.shiftKey) || (event.ctrlKey && key === 'y');
+        const history = editorHistory(editor);
+        history.lastShortcutAt = performance.now();
+        const redo = (isUndoKey && event.shiftKey) || isWindowsRedoKey;
         restoreEditorHistory(editor, redo ? 'redo' : 'undo');
         return;
       }
@@ -1757,6 +1765,14 @@
         else void formatJson();
       }
     });
+
+    editor.addEventListener('beforeinput', event => {
+      if (event.inputType !== 'historyUndo' && event.inputType !== 'historyRedo') return;
+      event.preventDefault();
+      const history = editorHistory(editor);
+      if (performance.now() - history.lastShortcutAt < 100) return;
+      restoreEditorHistory(editor, event.inputType === 'historyRedo' ? 'redo' : 'undo');
+    }, { capture: true });
   }
 
   document.querySelector('.toolbar').addEventListener('click', event => {
