@@ -41,5 +41,16 @@
     return pairs;
   }
 
-  global.JsonBoardEditor = Object.freeze({ buildBracketPairs });
+  function shouldAutoFormatPaste({ currentText, selectionStart, selectionEnd, pastedText, mode }) {
+    const source = String(currentText ?? '');
+    const pasted = String(pastedText ?? '').trim();
+    const replacesWholeDocument = source.trim() === ''
+      || (selectionStart === 0 && selectionEnd === source.length);
+    if (!replacesWholeDocument || !pasted) return false;
+    if (mode === 'xml') return pasted.includes('<') && pasted.includes('>');
+    return (pasted.startsWith('{') && pasted.endsWith('}'))
+      || (pasted.startsWith('[') && pasted.endsWith(']'));
+  }
+
+  global.JsonBoardEditor = Object.freeze({ buildBracketPairs, shouldAutoFormatPaste });
 })(globalThis);

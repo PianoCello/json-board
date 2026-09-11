@@ -56,6 +56,8 @@ assert.match(script, /function setCodeMode\(/);
 assert.match(script, /function setXmlMode\(/);
 assert.match(script, /function formatXml\(/);
 assert.match(script, /function formatPastedStructuredText\(/);
+assert.match(script, /JsonBoardEditor\.shouldAutoFormatPaste\(/);
+assert.match(script, /pastedText:\s*event\.clipboardData\?\.getData\('text\/plain'\)/);
 assert.match(script, /input\.scrollLeft = 0;[\s\S]{0,180}formatXml[\s\S]{0,180}formatJson/);
 assert.match(script, /window\.JsonBoardXml\.foldRanges/);
 assert.match(script, /else if \(xmlMode && xmlConvertible\) convertXmlToJson\(\);[\s\S]{0,60}else if \(xmlMode\) setXmlMode\(false\);/);

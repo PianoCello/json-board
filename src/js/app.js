@@ -1660,10 +1660,17 @@
 
   const expandBeforePrimaryEdit = () => expandAllFolds({ preserveSelection: true });
   input.addEventListener('beforeinput', expandBeforePrimaryEdit);
-  input.addEventListener('paste', expandBeforePrimaryEdit, { capture: true });
-  input.addEventListener('paste', () => {
-    requestAnimationFrame(() => void formatPastedStructuredText());
-  });
+  input.addEventListener('paste', event => {
+    const shouldFormat = !compareMode && !codeMode && window.JsonBoardEditor.shouldAutoFormatPaste({
+      currentText: input.value,
+      selectionStart: input.selectionStart,
+      selectionEnd: input.selectionEnd,
+      pastedText: event.clipboardData?.getData('text/plain') || '',
+      mode: xmlMode ? 'xml' : 'json'
+    });
+    expandBeforePrimaryEdit();
+    if (shouldFormat) requestAnimationFrame(() => void formatPastedStructuredText());
+  }, { capture: true });
   input.addEventListener('cut', expandBeforePrimaryEdit, { capture: true });
   input.addEventListener('keydown', event => {
     if (!foldedStarts.size) return;
