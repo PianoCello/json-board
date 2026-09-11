@@ -79,6 +79,9 @@ npm run serve
 
 | 快捷键 | 功能 |
 | --- | --- |
+| `Ctrl/Command + C` | 无选区时复制光标所在整行；有选区时复制选区 |
+| `Ctrl/Command + X` | 无选区时剪切光标所在整行；有选区时剪切选区 |
+| `Ctrl/Command + V` | 粘贴文本；由看板复制的整行会按行插入 |
 | `Ctrl/Command + Enter` | 格式化当前 JSON 或 XML |
 | `Ctrl + H` | Windows 打开查找替换 |
 | `Command + Option + F` | macOS 打开查找替换 |

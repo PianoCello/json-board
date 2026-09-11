@@ -52,5 +52,20 @@
       || (pasted.startsWith('[') && pasted.endsWith(']'));
   }
 
-  global.JsonBoardEditor = Object.freeze({ buildBracketPairs, shouldAutoFormatPaste });
+  function lineClipboardRange(text, offset) {
+    const source = String(text ?? '');
+    const caret = Math.max(0, Math.min(Number(offset) || 0, source.length));
+    const start = source.lastIndexOf('\n', caret - 1) + 1;
+    const nextBreak = source.indexOf('\n', caret);
+    const end = nextBreak === -1 ? source.length : nextBreak + 1;
+    return {
+      start,
+      end,
+      deleteStart: nextBreak === -1 && start > 0 ? start - 1 : start,
+      deleteEnd: end,
+      text: `${source.slice(start, end)}${nextBreak === -1 ? '\n' : ''}`
+    };
+  }
+
+  global.JsonBoardEditor = Object.freeze({ buildBracketPairs, lineClipboardRange, shouldAutoFormatPaste });
 })(globalThis);

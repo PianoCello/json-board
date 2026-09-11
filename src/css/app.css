@@ -270,19 +270,21 @@ body.show-lines .line-numbers { display: block; }
   position: absolute;
   display: grid;
   place-items: center;
-  width: 17px;
-  height: 17px;
+  width: 15px;
+  height: 15px;
   margin: 0;
   padding: 0 0 1px;
   color: #ff5a59;
   background: #fff;
-  border: 1.5px solid currentColor;
+  border: 1.25px solid currentColor;
   border-radius: 50%;
-  font: 700 13px/1 var(--font-ui);
+  font: 700 11px/1 var(--font-ui);
   pointer-events: auto;
   cursor: pointer;
   transition: color .14s ease, background-color .14s ease, transform .14s ease;
 }
+
+.fold-button::after { content: ''; position: absolute; inset: -4px; }
 
 .fold-button:hover { color: #e93f3e; background: #fff3f3; transform: scale(1.08); }
 .fold-button.collapsed { color: #0f71e8; background: #fff; }

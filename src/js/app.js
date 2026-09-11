@@ -82,6 +82,7 @@
   let userEditedBeforeRestore = false;
   let activeEditor = input;
   let currentSearchIndex = -1;
+  let lineClipboardText = '';
   const foldedStarts = new Set();
   const editorCache = new WeakMap();
   const bracketCache = new WeakMap();
@@ -450,7 +451,7 @@
         : row.range.type === 'xml-element' ? `（${row.range.itemCount} 个子元素）` : '';
       button.title = `${row.collapsed ? '展开' : '折叠'}片段${countDescription}`;
       button.setAttribute('aria-label', `${row.collapsed ? '展开' : '折叠'}第 ${row.fullLine + 1} 行片段${countDescription}`);
-      button.style.top = `${y - input.scrollTop + (lineHeight - 17) / 2}px`;
+      button.style.top = `${y - input.scrollTop + (lineHeight - 15) / 2}px`;
       button.style.left = `${Math.max(2, 18 + indent * characterWidth - 22 - input.scrollLeft)}px`;
       button.dataset.foldLine = String(row.fullLine);
       fragment.append(button);
@@ -1335,6 +1336,46 @@
     announce(`已复制${type}`);
   }
 
+  function enableLineClipboard(editor) {
+    editor.addEventListener('copy', event => {
+      if (editor.selectionStart !== editor.selectionEnd) {
+        lineClipboardText = '';
+        return;
+      }
+      if (!event.clipboardData) return;
+      const range = window.JsonBoardEditor.lineClipboardRange(editor.value, editor.selectionStart);
+      event.preventDefault();
+      event.clipboardData.setData('text/plain', range.text);
+      lineClipboardText = range.text;
+      announce('已复制当前行');
+    });
+
+    editor.addEventListener('cut', event => {
+      if (editor.selectionStart !== editor.selectionEnd) {
+        lineClipboardText = '';
+        return;
+      }
+      if (!event.clipboardData) return;
+      const range = window.JsonBoardEditor.lineClipboardRange(editor.value, editor.selectionStart);
+      event.preventDefault();
+      event.clipboardData.setData('text/plain', range.text);
+      lineClipboardText = range.text;
+      editor.setRangeText('', range.deleteStart, range.deleteEnd, 'start');
+      editor.dispatchEvent(new Event('input', { bubbles: true }));
+      announce('已剪切当前行');
+    });
+
+    editor.addEventListener('paste', event => {
+      const pastedText = event.clipboardData?.getData('text/plain') || '';
+      if (!lineClipboardText || pastedText !== lineClipboardText || editor.selectionStart !== editor.selectionEnd) return;
+      const range = window.JsonBoardEditor.lineClipboardRange(editor.value, editor.selectionStart);
+      event.preventDefault();
+      editor.setRangeText(pastedText, range.start, range.start, 'end');
+      editor.dispatchEvent(new Event('input', { bubbles: true }));
+      announce('已粘贴当前行');
+    });
+  }
+
   function renderDiffLines(container, statuses) {
     const fragment = document.createDocumentFragment();
     statuses.forEach(status => {
@@ -1678,6 +1719,8 @@
   }, { capture: true });
   input.addEventListener('input', () => handleEditorInput(input, primaryHighlight, lineNumbers));
   compareInput.addEventListener('input', () => handleEditorInput(compareInput, compareHighlight, compareLineNumbers));
+  enableLineClipboard(input);
+  enableLineClipboard(compareInput);
   input.addEventListener('focus', () => {
     activeEditor = input;
     replaceTarget.textContent = '当前文本';
